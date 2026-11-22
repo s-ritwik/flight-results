@@ -1961,7 +1961,7 @@ V.cam = {az: -0.9, el: 0.5, zoom: 1, px: 0, py: 0};
 V.dropped = [];
 V.fitAll = false;   // default: scale to the reference track, not the diverged one
 V.traj = null;
-V.trajHide = new Set();   // tracks switched off by clicking their legend entry (by kind: GPS, FUSE, VIO, ATLAS)
+V.trajHide = new Set(['VIO', 'VPS']);   // tracks switched off by clicking their legend entry; the demo opens on GPS and Fused
 V.legendBoxes = [];       // the legend's hit boxes, refreshed by every draw
 
 function vioFit(cv){
