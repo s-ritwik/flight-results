@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flight Results</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230a84c2'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='white' stroke-width='2.5'/%3E%3Cpath d='M16 3v7M16 22v7M3 16h7M22 16h7' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f4f6fa; --panel:#ffffff; --panel2:#eef1f6; --edge:#dde3ec; --edge2:#c6cede;
+  --ink:#1b2432; --dim:#556479; --dim2:#8592a5;
+  --cyan:#0a84c2; --green:#15a34a; --amber:#c2740a; --red:#dc2626; --violet:#7c3aed; --blue:#2563eb;
+  --media:#dbe1ea; --overlay:#eafaff;
+  --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13px;overflow:hidden}
+button,select,input{font-family:inherit}
+body{display:grid;grid-template-rows:auto 1fr auto;height:100vh}
+header{display:flex;align-items:center;gap:14px;padding:9px 16px;background:linear-gradient(180deg,#ffffff,#eef1f6);border-bottom:1px solid var(--edge);min-width:0}
+.logo{font-family:var(--mono);font-weight:700;letter-spacing:2px;font-size:15px;color:var(--cyan);white-space:nowrap}
+.logo b{color:var(--ink)}
+.pick{display:flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+.pick select{background:var(--panel2);border:1px solid var(--edge2);color:var(--ink);border-radius:6px;padding:5px 7px;font-family:var(--mono);font-size:12px;text-transform:none;letter-spacing:0;max-width:280px}
+.chips{display:flex;gap:6px;min-width:0;overflow:hidden;flex-wrap:nowrap}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:6px;background:var(--panel2);border:1px solid var(--edge);color:var(--dim);white-space:nowrap}
+.chip b{color:var(--ink);font-weight:600}
+.chip.kind-flight{background:rgba(10,132,194,.1);border-color:rgba(10,132,194,.35);color:var(--cyan);font-weight:700;letter-spacing:.6px}
+.chip.kind-fuse,.chip.kind-iris{background:rgba(27,175,122,.1);border-color:rgba(27,175,122,.35);color:#1baf7a;font-weight:700;letter-spacing:.6px}
+.chip.kind-bagplay{background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.35);color:var(--violet);font-weight:700;letter-spacing:.6px}
+button.chip{cursor:pointer}button.chip:hover{border-color:var(--cyan);color:var(--cyan)}
+.spacer{flex:1}
+main{display:grid;grid-template-columns:250px minmax(0,1fr) 330px;min-height:0}
+main.atlas{grid-template-columns:minmax(0,1fr)}
+#igrid{grid-template-columns:minmax(0,2fr) minmax(0,3fr);grid-template-rows:var(--ph,300px) var(--ph,300px)}
+#igrid>.ipane[data-p="B"],#igrid>.ipane[data-p="C"]{display:none}
+#igrid>.ipane[data-p="A"]{grid-column:1;grid-row:1}
+#igrid>#mapPane{grid-column:1;grid-row:2;flex:none;min-height:0;border-radius:6px}
+#igrid>.ipane[data-p="D"]{grid-column:2;grid-row:1/span 2}
+#igrid .dblend{padding:6px 12px;font-size:12px;gap:10px}#igrid .dblend input{width:220px}
+#tabs,#prevFail,#nextFail{display:none!important}
+.wzhint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);color:#fff;font-family:var(--mono);font-size:14px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:5}
+.wzhint.on{opacity:1}
+.resrow{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:6px;margin:6px;height:max(380px,62vh);flex:0 0 auto}
+.resrow>#vioSmallPane{min-height:0;border:1px solid var(--edge2);border-radius:8px;resize:none}
+.resrow>#vioLive{border:1px solid var(--edge2);border-radius:8px}
+main.atlas>#left,main.atlas>#readout,#hsplit,#figs,#fitMap,#fitAll,#inspFoot,#inspSrc,#inspView,.irot,.ichk,#inspClose,#tileChip{display:none!important}
+main.signals{grid-template-columns:minmax(0,1fr) 330px}
+#vioLeft,main.signals .vpages,#vioFigs{display:none!important}
+#vioSmallPane{flex:1 1 auto!important}
+.left{overflow-y:auto;padding:10px 8px 14px;background:var(--panel);border-right:1px solid var(--edge)}
+.sighd{color:var(--cyan);font-weight:700;font-size:12px;letter-spacing:2px;margin:12px 2px 6px;display:flex;justify-content:space-between;align-items:baseline}
+.sighd:first-child{margin-top:0}
+.sighd span{color:var(--dim2);font-weight:400;font-size:10px;letter-spacing:0;font-family:var(--mono)}
+.gh{color:var(--dim);font-weight:700;font-size:9.5px;letter-spacing:.8px;margin:9px 2px 2px;text-transform:uppercase}
+.row{display:flex;align-items:center;gap:6px;padding:2px 4px;border-radius:4px;border-left:2px solid transparent;font-family:var(--mono);font-size:11px;cursor:pointer;user-select:none}
+.row:hover{background:var(--panel2)}
+.row.on{background:var(--overlay);border-left-color:var(--cyan)}
+.row input{margin:0;accent-color:var(--cyan);cursor:pointer}
+.row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .ct{color:var(--dim2);font-size:10px}
+.row.off .nm{color:var(--dim2);text-decoration:line-through}
+.mk{flex:0 0 12px;height:12px;display:inline-block}
+.hint{color:var(--dim2);font-size:10.5px;line-height:1.55;margin:12px 3px 0}
+.skipped{color:var(--dim2);font-size:10px;font-family:var(--mono);margin:4px 3px 0;line-height:1.5}
+.center{display:flex;flex-direction:column;min-width:0;min-height:0}
+.mappane{position:relative;flex:0 0 52%;min-height:160px;background:var(--media);overflow:hidden}
+.mappane canvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;display:block}
+.mappane canvas.drag{cursor:grabbing}
+.mapbtns{position:absolute;top:10px;left:10px;display:flex;gap:5px}
+.mapbtns button{font-family:var(--mono);font-size:10.5px;padding:5px 9px;border-radius:6px;border:1px solid var(--edge2);background:rgba(255,255,255,.92);color:var(--ink);cursor:pointer;box-shadow:0 1px 3px rgba(27,36,50,.15)}
+.mapbtns button:hover{border-color:var(--cyan);color:var(--cyan)}
+.mapinfo{position:absolute;right:10px;bottom:8px;font-family:var(--mono);font-size:10.5px;color:var(--ink);background:rgba(255,255,255,.88);padding:3px 8px;border-radius:5px;pointer-events:none}
+.maplegend{position:absolute;right:10px;top:10px;font-family:var(--mono);font-size:10.5px;background:rgba(255,255,255,.92);border:1px solid var(--edge);border-radius:7px;padding:6px 9px;line-height:1.7;pointer-events:none;box-shadow:0 1px 3px rgba(27,36,50,.12)}
+.maplegend div{display:flex;align-items:center;gap:6px}
+.maplegend .note{color:var(--dim2);font-size:9.5px;line-height:1.3;max-width:190px;margin-top:3px}
+.hsplit{flex:0 0 6px;cursor:row-resize;background:var(--edge);position:relative}
+.hsplit:hover{background:var(--cyan)}
+.hsplit::after{content:'';position:absolute;top:50%;left:50%;width:26px;height:2px;transform:translate(-50%,-50%);background:var(--dim2);border-radius:2px}
+.lower{flex:1 1 0;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.figs{flex:0 0 auto;padding:6px;display:flex;flex-direction:column;gap:6px}
+.insp{flex:0 0 auto;margin:6px 6px 0;background:var(--panel);border:1px solid var(--edge2);border-radius:8px;overflow:hidden;box-shadow:0 1px 4px rgba(27,36,50,.08)}
+.insphd{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:6px 9px;font-family:var(--mono);font-size:10.5px;color:var(--dim);border-bottom:1px solid var(--edge);background:var(--panel2)}
+.insphd b{color:var(--cyan);letter-spacing:1.4px}
+.insphd .ttl{color:var(--ink)}
+.iseg{display:inline-flex;border:1px solid var(--edge2);border-radius:5px;overflow:hidden}
+.iseg button{border:0;border-right:1px solid var(--edge);background:var(--panel);color:var(--dim);font-family:var(--mono);font-size:10px;padding:3px 7px;cursor:pointer}
+.iseg button:last-child{border-right:0}
+.iseg button.on{background:var(--cyan);color:#fff}
+.iseg button:disabled{opacity:.4;cursor:not-allowed}
+.irot{display:inline-flex;align-items:center;gap:5px}
+.irot input{width:120px;accent-color:var(--cyan)}
+.ichk{display:inline-flex;align-items:center;gap:4px;cursor:pointer}
+.ichk input{accent-color:var(--cyan);margin:0}
+.ibtn{border:1px solid var(--edge2);background:var(--panel);border-radius:5px;cursor:pointer;font-family:var(--mono);font-size:10.5px;padding:2px 7px;color:var(--dim)}
+.ibtn:hover{border-color:var(--cyan);color:var(--cyan)}
+.ix{margin-left:auto;font-size:13px;line-height:1}
+.igrid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:var(--ph, 300px);gap:6px;padding:6px}
+.ipane{position:relative;background:#1e2020;border-radius:6px;overflow:hidden;cursor:crosshair;min-height:0}
+.ipane canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.dbtns{position:absolute;right:8px;top:6px;display:flex;gap:4px}
+.dbtns .ibtn{background:rgba(255,255,255,.92)}
+.dblend{position:absolute;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,.92);border:1px solid var(--edge2);font-family:var(--mono);font-size:10.5px;color:var(--ink)}
+.dblend input{width:110px;accent-color:var(--cyan)}
+.dblend span{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+
+.ilab{position:absolute;left:8px;top:6px;font-family:var(--mono);font-size:10.5px;color:#fff;background:rgba(0,0,0,.6);padding:2px 7px;border-radius:4px;pointer-events:none;max-width:calc(100% - 16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ilab b{color:#ffd60a}
+.imsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aeb6c4;font-family:var(--mono);font-size:11px;text-align:center;padding:24px;pointer-events:none}
+.ifoot{padding:2px 10px 7px;font-family:var(--mono);font-size:10px;color:var(--dim2);line-height:1.5}
+.card .ibtn{margin-top:8px}
+.fig{background:var(--panel);border:1px solid var(--edge);border-radius:8px;overflow:hidden;flex:0 0 auto}
+.fighd{display:flex;align-items:center;gap:10px;padding:3px 9px;font-family:var(--mono);font-size:10px;color:var(--dim);border-bottom:1px solid var(--edge);background:var(--panel2);letter-spacing:.4px}
+.fighd .lg{display:inline-flex;align-items:center;gap:4px;color:var(--ink)}
+.fighd .lg i{display:inline-block;width:14px;height:3px;border-radius:2px}
+.fighd .lg.cmp i{height:0;border-top:2px dashed}
+.fig canvas{display:block;width:100%;cursor:crosshair}
+.empty{color:var(--dim2);padding:30px;text-align:center;font-family:var(--mono);font-size:12px}
+.right{overflow-y:auto;background:var(--panel);border-left:1px solid var(--edge);padding:10px 12px 16px}
+.card{border:1px solid var(--edge);border-radius:9px;padding:10px 11px;margin-bottom:10px;background:var(--panel)}
+.card h3{margin:0 0 7px;font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);font-weight:600;display:flex;justify-content:space-between;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.card h3 .sub{font-family:var(--mono);font-size:10px;letter-spacing:0;text-transform:none;color:var(--dim2);font-weight:400}
+.big{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.5px}
+.big small{font-size:12px;color:var(--dim2);font-weight:400;letter-spacing:0;margin-left:6px}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:3px 8px;font-family:var(--mono);font-size:11.5px;align-items:baseline}
+.kv .k{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kv .v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.kv .g{color:var(--dim2);font-size:10.5px;text-align:right;white-space:nowrap}
+.kv .v.bad{color:var(--red);font-weight:700}
+.att{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10.5px;font-variant-numeric:tabular-nums}.att th,.att td{padding:2px 3px;text-align:right;white-space:nowrap}.att th{color:var(--dim);font-weight:600;padding-top:6px}.att th:first-child,.att td:first-child{text-align:left;color:var(--dim)}
+.kv .k.xk{cursor:pointer}.kv .k.xk:hover{color:var(--ink)}.kv .k.xsub{padding-left:14px;color:var(--dim2)}
+.cfgl{margin-top:8px;border-top:1px solid var(--edge);padding-top:6px;font-family:var(--mono);font-size:10.5px;line-height:1.35}
+.cfgl div{display:flex;justify-content:space-between;gap:8px;padding:1px 0}
+.cfgl .k{color:var(--dim);white-space:nowrap}.cfgl .v{text-align:right;word-break:break-all;min-width:0}.kv .v.ok{color:var(--green)}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;color:#fff;letter-spacing:.3px}
+.why{margin-top:8px;padding:6px 8px;border-radius:6px;background:rgba(225,29,72,.07);border:1px solid rgba(225,29,72,.25);font-size:11.5px;line-height:1.45;color:var(--ink)}
+.why.ok{background:rgba(21,163,74,.07);border-color:rgba(21,163,74,.25)}
+.why.grey{background:var(--panel2);border-color:var(--edge)}
+.thumb{margin-top:8px;border:1px solid var(--edge);border-radius:6px;overflow:hidden;cursor:zoom-in}
+.thumb img{display:block;width:100%}
+.evl{font-family:var(--mono);font-size:10.5px;line-height:1.45;max-height:170px;overflow-y:auto}
+.evl div{padding:2px 0;border-bottom:1px solid var(--panel2);cursor:pointer}
+.evl div:hover{background:var(--panel2)}
+.evl .tt{color:var(--dim2);margin-right:5px}.evl .w{color:var(--amber)}.evl .e{color:var(--red)}
+.dim{color:var(--dim2)}
+.frl{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.frl button{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--edge2);background:var(--panel);cursor:pointer;color:var(--ink)}
+.frl button:hover{border-color:var(--violet);color:var(--violet)}
+footer{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--panel2);border-top:1px solid var(--edge)}
+footer button{height:32px;border-radius:7px;border:1px solid var(--edge2);background:var(--panel);color:var(--ink);font-size:12px;padding:0 10px;cursor:pointer;font-family:var(--mono);white-space:nowrap}
+footer button:hover{border-color:var(--cyan)}
+footer button.play{background:var(--green);border-color:var(--green);color:#04140a;width:46px;font-size:14px}
+footer button.fail{color:#be123c}
+.speed{display:flex;gap:3px}
+.speed button{padding:0 8px;font-size:11px}
+.speed button.on{background:var(--cyan);color:#fff;border-color:var(--cyan)}
+.scrub{flex:1;accent-color:var(--cyan);min-width:120px}
+.tcode{font-family:var(--mono);font-size:13px;min-width:190px;text-align:right;font-variant-numeric:tabular-nums}
+.tcode .d{color:var(--dim2)}
+#tip{display:none;position:fixed;z-index:60;pointer-events:none;background:var(--panel);border:1px solid var(--edge2);border-radius:6px;padding:6px 8px;font-family:var(--mono);font-size:11px;color:var(--ink);box-shadow:0 4px 14px rgba(27,36,50,.18);white-space:nowrap;line-height:1.5}
+#tip .tx{color:var(--dim)}
+#lightbox{display:none;position:fixed;inset:0;background:rgba(244,246,250,.95);z-index:80;align-items:center;justify-content:center;cursor:zoom-out}
+#lightbox img{max-width:96%;max-height:94%;border:1px solid var(--edge2);border-radius:8px;box-shadow:0 8px 30px rgba(27,36,50,.18)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.tabs{display:flex;gap:2px;margin-left:4px}
+.tab{font-family:var(--mono);font-size:11px;letter-spacing:.6px;padding:5px 11px;border:1px solid var(--edge2);
+     background:var(--panel2);color:var(--dim);border-radius:6px;cursor:pointer}
+.tab.on{background:var(--panel);color:var(--ink);border-color:var(--ink);font-weight:600}
+main.video,main.signals{display:none}
+body.tab-video main.atlas,body.tab-signals main.atlas{display:none}
+body.tab-video main.video{display:grid}
+body.tab-signals main.signals{display:grid}
+.vpages{display:flex;gap:2px;padding:6px 8px;border-bottom:1px solid var(--edge);background:var(--panel2)}
+.vpage{font-family:var(--mono);font-size:10.5px;padding:4px 10px;border:1px solid var(--edge2);background:var(--panel);
+       color:var(--dim);border-radius:5px;cursor:pointer}
+.vpage.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.vbody{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.vwrap{flex:1;min-height:0;display:none;flex-direction:column;overflow:hidden}
+.vwrap.on{display:flex}
+.vvid{background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+/* width/height 100% + object-fit, NOT max-*: max-* only ever shrinks, so a 960x600 trackhist
+   frame would sit at natural size letterboxed in the middle of a large pane instead of filling
+   it. object-fit:contain keeps the aspect ratio while scaling up. */
+.vvid video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.vvid .novid{color:var(--dim);font-family:var(--mono);font-size:12px;padding:20px;text-align:center}
+.vstats{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:8px;padding:10px;overflow-y:auto}
+.vstat{border:1px solid var(--edge);border-radius:8px;padding:8px 10px;background:var(--panel)}
+.vstat .k{font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.5px;text-transform:uppercase}
+.vstat .v{font-family:var(--mono);font-size:17px;color:var(--ink);margin-top:3px}
+.vstat .s{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
+.vstat .sp{display:block;width:100%;height:30px;margin-top:4px}
+.vtraj{position:relative;background:var(--panel);border-bottom:1px solid var(--edge);overflow:hidden;resize:vertical}
+.vtraj canvas{display:block;width:100%;height:100%}
+.vfit{position:absolute;left:8px;bottom:6px;font-family:var(--mono);font-size:9.5px;color:var(--dim);
+  background:var(--panel2);border:1px solid var(--edge2);border-radius:4px;padding:2px 7px;cursor:pointer}
+.vfit.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.v3dhint{position:absolute;right:8px;bottom:6px;font-family:var(--mono);font-size:9.5px;color:var(--dim);
+         background:var(--panel2);border:1px solid var(--edge);border-radius:4px;padding:2px 6px;pointer-events:none}
+.vfigs{flex:1;min-height:0;overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:6px}
+.vfig{border:1px solid var(--edge);border-radius:8px;background:var(--panel);flex:0 0 auto;overflow:hidden}
+.vfighd{display:flex;align-items:center;gap:8px;padding:3px 8px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);background:var(--panel2);border-bottom:1px solid var(--edge)}
+.vfighd .gr{flex:1}
+.vfig canvas{display:block;width:100%}
+.vsig{overflow-y:auto;padding:8px}
+.vgrp{font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.6px;margin:9px 0 3px;
+      text-transform:uppercase;border-bottom:1px solid var(--edge)}
+.vrow{display:flex;align-items:center;gap:7px;padding:2px 4px;border-radius:4px;cursor:pointer;font-size:11.5px}
+.vrow:hover{background:var(--panel2)}
+.vrow input{margin:0;cursor:pointer}
+.vrow .sw{width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.25);flex:0 0 auto;cursor:pointer}
+.vrow .nm{flex:1;font-family:var(--mono);font-size:10.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vrow .un{font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+.vrow .fg{font-family:var(--mono);font-size:9px;color:var(--dim);border:1px solid var(--edge2);border-radius:3px;padding:0 3px}
+#vioStylePop{display:none;position:fixed;z-index:70;background:var(--panel);border:1px solid var(--edge2);
+  border-radius:8px;padding:9px 10px;box-shadow:0 8px 24px rgba(27,36,50,.18);width:226px;font-family:var(--mono);font-size:11px}
+#vioStylePop .t{color:var(--dim);margin:0 0 6px;font-weight:700}
+#vioStylePop .lb{color:var(--dim);font-size:10px;margin:8px 0 3px}
+#vioStylePop .sw6{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+#vioStylePop .sw6 button{height:16px;border:1px solid var(--edge2);border-radius:3px;cursor:pointer;padding:0}
+#vioStylePop .seg{display:flex;gap:3px;flex-wrap:wrap}
+#vioStylePop .seg button{flex:1 1 auto;min-width:44px;padding:3px 4px;font-size:10px;font-family:var(--mono);
+  border:1px solid var(--edge2);background:var(--panel);color:var(--dim);border-radius:4px;cursor:pointer}
+#vioStylePop .seg button.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+#vioStylePop .rowf{display:flex;align-items:center;gap:6px;margin-top:8px}
+#vioStylePop input[type=color]{width:34px;height:22px;padding:0;border:1px solid var(--edge2);border-radius:4px;background:none;cursor:pointer}
+#vioStylePop input[type=range]{flex:1 1 auto}
+#vioStylePop .foot{display:flex;gap:5px;margin-top:10px}
+#vioStylePop .foot button{flex:1 1 auto;padding:4px;font-size:10px;font-family:var(--mono);
+  border:1px solid var(--edge2);background:var(--panel);color:var(--dim);border-radius:4px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">FLIGHT<b>·</b>RESULTS</div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="atlas">MAP MATCHING</button>
+    <button class="tab" data-tab="video" hidden>TRACK HISTORY</button>
+    <button class="tab" data-tab="signals">RESULT</button>
+  </div>
+  <label class="pick">folder <select id="runSel"></select></label>
+  <label class="pick" style="display:none">compare <select id="cmpSel"><option value="">none</option></select></label>
+  <button class="chip" id="pairBtn" hidden></button>
+  <div class="chips" id="runChips"></div>
+  <div class="spacer"></div>
+  <div class="chip" id="tileChip">map tiles …</div>
+</header>
+<div id="vioStylePop"></div>
+<main class="atlas">
+  <aside class="left" id="left">
+    <div class="sighd">MAP</div>
+    <div id="layerList"></div>
+    <div class="sighd">OUTCOMES <span>click to hide</span></div>
+    <div id="outList"></div>
+    <div class="sighd">SIGNALS <span id="sigCount"></span></div>
+    <div id="sigList"></div>
+    <div class="hint">Plots: wheel zooms time, drag pans, click sets the cursor, double-click shows the whole flight.<br>
+      Map: wheel zooms, drag pans, click a marker to jump to its time.<br>
+      Click any fix or attempt (map, plot dot or timeline tick) to open the match inspector above the plots.<br>
+      Keys: space play · ←/→ previous/next attempt · shift+←/→ previous/next failure.</div>
+    <div class="skipped" id="skipped"></div>
+  </aside>
+  <section class="center">
+    <div class="mappane" id="mapPane">
+      <canvas id="map"></canvas>
+      <div class="mapbtns">
+        <button id="fitFlight" title="Zoom to the flight">fit flight</button>
+        <button id="fitMap" title="Zoom out to the whole 6 x 6 km basemap">6 km map</button>
+        <button id="fitAll" title="Zoom to the flight and every position atlas gave it, wrong locks and provisional locks included">fit all</button>
+        <button id="centerNow" title="Centre on the drone at the cursor time">centre on cursor</button>
+      </div>
+      <div class="maplegend" id="mapLegend"></div>
+      <div class="mapinfo" id="mapInfo"></div>
+    </div>
+    <div class="hsplit" id="hsplit" title="drag to resize"></div>
+    <div class="lower" id="lower">
+      <div class="insp" id="insp" hidden>
+        <div class="insphd">
+          <b>MATCH INSPECTOR</b><span class="ttl" id="inspTitle"></span>
+          <button class="ibtn" id="inspPrev" title="previous attempt (←)">◀</button><button class="ibtn" id="inspNext" title="next attempt (→)">▶</button>
+          <span class="iseg" id="inspSrc"><button data-src="atlas">map at atlas fix</button><button data-src="gps">map at GPS truth</button></span>
+          <span class="iseg" id="inspView"><button data-view="natural" class="on">basemap</button><button data-view="clahe">basemap CLAHE</button></span>
+          <label class="irot" title="Turn the map about the centre: atlas's heading plus this">heading <input type="range" id="inspRot" min="-180" max="180" step="1" value="0"><span id="inspHdg"></span></label>
+          <label class="ichk" title="Spread the frame's contrast for the eye; off shows the exact frame atlas matched"><input type="checkbox" id="inspStretch" checked>auto-contrast</label>
+          <label class="ichk"><input type="checkbox" id="inspMask" checked>gear mask</label>
+          <button class="ibtn ix" id="inspClose" title="close (esc)">×</button>
+        </div>
+        <div class="igrid" id="igrid">
+          <div class="ipane" data-p="A"><canvas></canvas><div class="imsg"></div><div class="ilab"></div></div>
+          <div class="ipane" data-p="B"><canvas></canvas><div class="imsg"></div><div class="ilab"></div></div>
+          <div class="ipane" data-p="C"><canvas></canvas><div class="imsg"></div><div class="ilab"></div></div>
+          <div class="ipane" data-p="D"><canvas></canvas><div class="imsg"></div><div class="ilab"></div>
+            <div class="dbtns"><button class="ibtn" id="dFoot">fit footprint</button><button class="ibtn" id="dErr">fit error</button></div>
+            <label class="dblend" title="Opacity of atlas's ortho (or, without one, camera frame B) laid over the map; 0 hides it">overlay <input type="range" id="inspBlend" min="0" max="100" step="5" value="60"><span id="inspBlendV">60%</span></label></div>
+        </div>
+        <div class="ifoot" id="inspFoot"></div>
+      </div>
+      <div class="figs" id="figs"><div class="empty">loading…</div></div>
+    </div>
+  </section>
+  <aside class="right" id="readout"></aside>
+</main>
+
+<!-- ── VIO ──────────────────────────────────────────────────────────────────────────────────
+     Two pages over the same data. "overview" is the track-history video at full size with the
+     numbers that say whether the estimator was healthy; "explorer" shrinks the video and gives
+     the grouped signal picker and stacked figures, the layout dashboard_improved.py uses. The
+     video and the plots share one clock, so scrubbing either moves the other. -->
+<!-- ── TRACK HISTORY ────────────────────────────────────────────────────────────────────────
+     The track-history video at full size with the numbers that say whether the estimator was
+     healthy while it played. This is the view for "what did the front end actually see". -->
+<main class="video">
+  <section class="center" style="grid-column:1/-1">
+    <div class="vpages">
+      <span class="vpage" id="vidTopic" style="border:0;background:none;color:var(--dim)">track history</span>
+      <div style="flex:1"></div>
+      <span class="vpage" id="vidClock" style="border:0;background:none">t = 0.0 s</span>
+    </div>
+    <div class="vbody">
+      <div class="vwrap on">
+        <div class="vvid" style="flex:1 1 0;min-height:0"><video id="vioVidBig" controls preload="metadata"></video></div>
+        <div class="vstats" id="vioStats" style="flex:0 0 auto;max-height:26vh"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ── SIGNALS ──────────────────────────────────────────────────────────────────────────────
+     dashboard_improved's layout: grouped picker on the left, stacked figures on the right, with
+     the video kept small above them so a feature dropout can be read against the plots. Figures
+     and the video share one clock -- scrubbing either moves the other. -->
+<main class="signals">
+  <aside class="left" id="vioLeft">
+    <div class="sighd">VIO SIGNALS <span id="vioCount"></span></div>
+    <div class="vsig" id="vioSigList"></div>
+  </aside>
+  <section class="center">
+    <div class="vpages">
+      <button class="vpage" id="vioAddFig" title="New figure below the last. Signals ticked AFTER this land on it.">+ figure</button>
+      <button class="vpage" id="vioClear">clear</button>
+      <button class="vpage on" id="vioVidToggle" title="Show or hide the 3-D trajectory above the figures">3D</button>
+      <div style="flex:1"></div>
+      <span class="vpage" id="vioClock" style="border:0;background:none">t = 0.0 s</span>
+    </div>
+    <div class="vbody">
+      <div class="vwrap on">
+        <div class="vtraj" id="vioSmallPane" style="flex:0 0 40%;min-height:180px">
+          <canvas id="vioTraj"></canvas>
+          <div class="v3dhint">drag orbit · shift/right-drag pan · ctrl+scroll zoom · dbl-click reset</div>
+          <button class="vfit" id="vioFitAll" title="Scale to every track, including a diverged VIO run">fit all</button>
+        </div>
+        <div class="vfigs" id="vioFigs"></div>
+      </div>
+    </div>
+  </section>
+  <aside class="right" id="vioLive"></aside>
+</main>
+<footer>
+  <button class="fail" id="prevFail" title="Previous failed attempt (shift+←)">⏮ fail</button>
+  <button id="prevAtt" title="Previous attempt (←)">◀</button>
+  <button class="play" id="play" title="Play / pause (space)">▶</button>
+  <button id="nextAtt" title="Next attempt (→)">▶</button>
+  <button class="fail" id="nextFail" title="Next failed attempt (shift+→)">fail ⏭</button>
+  <div class="speed" id="speed"></div>
+  <input type="range" class="scrub" id="scrub" min="0" max="1" step="0.05" value="0">
+  <div class="tcode" id="tcode"></div>
+</footer>
+<div id="tip"></div>
+<div id="lightbox"><img alt=""></div>
+<script>
+'use strict';
+
+(() => {
+  const D = 'data/', f0 = window.fetch.bind(window), insp = {};
+  const js = (o, st) => new Response(JSON.stringify(o), {status:st || 200, headers:{'Content-Type':'application/json'}});
+  window.fetch = async (u, o) => {
+    let m;
+    if (u === '/api/runs') return f0(D + 'runs.json');
+    if (u === '/api/tiles') return f0(D + 'tiles.json');
+    if ((m = u.match(/^\/api\/run\/([\w-]+)$/))) return f0(D + m[1] + '/run.json');
+    if ((m = u.match(/^\/api\/vio\/([\w-]+)\/traj$/))) return f0(D + m[1] + '/traj.json');
+    if ((m = u.match(/^\/api\/vio\/([\w-]+)$/))) return js({signals:{}, groups:[]});
+    if ((m = u.match(/^\/api\/inspect\/([\w-]+)\?t=([\d.]+)/))){
+      insp[m[1]] = insp[m[1]] || f0(D + m[1] + '/inspect.json').then(r => r.json());
+      const g = (await insp[m[1]])[m[2]]; return g ? js(g) : js({error:'not in this demo'}, 404);
+    }
+    return js({error:'not in this demo'}, 404);
+  };
+})();
+const $ = s => document.querySelector(s);
+function wheelZoom(e, el){
+  if (e.ctrlKey || e.metaKey) return true;
+  let h = el.querySelector(':scope > .wzhint');
+  if (!h){ h = document.createElement('div'); h.className = 'wzhint'; h.textContent = 'ctrl + scroll to zoom'; el.appendChild(h); }
+  h.classList.add('on'); clearTimeout(h.tm); h.tm = setTimeout(() => h.classList.remove('on'), 900);
+  return false;
+}
+const DPR = () => window.devicePixelRatio || 1;
+
+const LOW = 'below cold-start altitude', PROV = 'cold accept, confirming';
+const OUT = {
+  'track':                     {map:'#ffd60a', plot:'#b88a00', label:'tracked fix', fix:true},
+  'COLD':                      {map:'#bf5af2', plot:'#7c3aed', label:'first fix of a lock', fix:true, ring:true, msg:"COLD (a cold start, published at once), or the first 'track' after '" + PROV + "'"},
+  [PROV]:                      {map:'#ff4fd8', plot:'#c026d3', label:'provisional lock (not published)', tri:true, big:true, opt:true},
+  'tracked, confirming':       {map:'#f5b8ff', plot:'#d946ef', label:'confirming frame (not published)', diamond:true, opt:true},
+  'provisional lock not confirmed': {map:'#a21caf', plot:'#86198f', label:'provisional lock dropped', fail:true, diamond:true, opt:true},
+  'below accept':              {map:'#ff2d55', plot:'#e11d48', label:'cold start rejected', fail:true},
+  'below accept · tracked':    {map:'#ff7a45', plot:'#c2410c', label:'tracked frame rejected', fail:true, diamond:true, opt:true, msg:'below accept, on the tracked path'},
+  'tracked fit failed':        {map:'#ff9f0a', plot:'#d97706', label:'tracked fit failed', fail:true, diamond:true},
+  'below accept, lock kept':   {map:'#ffc46b', plot:'#f59e0b', label:'tracked frame rejected, lock kept', fail:true, diamond:true, hollow:true},
+  [LOW]:                       {map:'#aeb6c4', plot:'#8592a5', label:'too low to cold-start', small:true, nofit:true, msg:'below cold_min_agl: no cold start (older folders: ' + LOW + ')'},
+  'frame too small at this altitude': {map:'#c7cdd6', plot:'#9aa4b2', label:'frame too small at this altitude', small:true, opt:true, nofit:true, grey:true,
+    why:'Not searched: at this altitude the frame, scaled to the map, covers too little ground to match.'},
+  'no hypothesis survived the sweep': {map:'#ff8fab', plot:'#db2777', label:'cold start: no candidate', fail:true, opt:true, nofit:true,
+    why:'The cold-start sweep left no hypothesis standing, so there was no candidate to refine or accept.'},
+  'no gallery tile scored inside the map (or the place region)': {map:'#f9a8d4', plot:'#be185d', label:'no place inside the map', fail:true, opt:true, nofit:true,
+    why:'Place recognition scored no gallery tile inside the map (or inside the place region), so no place was nominated and nothing was matched.'},
+  'place engine failed':       {map:'#c08457', plot:'#92400e', label:'place engine failed', fail:true, opt:true, nofit:true,
+    why:'The place-recognition engine failed on this frame, so no places were nominated and nothing was matched.'},
+  'gallery scoring failed':    {map:'#d4a373', plot:'#a16207', label:'gallery scoring failed', fail:true, opt:true, nofit:true,
+    why:'Scoring the frame against the place gallery failed, so no places were nominated and nothing was matched.'},
+  'the cells could not be computed': {map:'#b08968', plot:'#7c5a3a', label:'map cells not computed', fail:true, opt:true, nofit:true,
+    why:'The map cells around the nominated places could not be computed from the tiles, so there was nothing to match against.'},
+  'tiled map without place recognition': {map:'#6b7280', plot:'#374151', label:'tiled map, no place recognition', fail:true, opt:true, nofit:true,
+    why:'The map is tiled (map_mode tiles) but no place recognition is loaded (place_engine, gallery_path); on a tiled map a cold start needs it, so nothing was searched.'},
+  'xfeat refused the canvas':  {map:'#c9a227', plot:'#8a6d0b', label:'XFeat refused the frame', fail:true, opt:true, nofit:true,
+    why:'XFeat refused the conditioned frame (the canvas), so no features were extracted and nothing was matched.'},
+  'no attitude':               {map:'#94a3b8', plot:'#475569', label:'no attitude', fail:true, opt:true, nofit:true,
+    why:'No attitude within attitude_tol_s of the frame, so atlas refused it: without one the fix would be the point under the optical axis, not under the aircraft.'},
+};
+const OTHER = {map:'#ff375f', plot:'#be123c', label:'other rejection', fail:true};
+const oc = o => OUT[o] || OTHER;
+const LINE = ['#0a84c2', '#c2740a', '#15a34a', '#7c3aed', '#dc2626', '#2563eb'];
+
+const FIGS = [
+  {id:'outcome', title:'OUTCOME OF EVERY ATTEMPT', kind:'timeline'},
+  {id:'lg', group:'Atlas · every attempt', title:'LIGHTERGLUE INLIERS', sig:[{k:'lg', name:'LighterGlue inliers', dots:1}], gates:[['cold_min_lg','cold ≥'],['track_min_lg','track ≥']], zero:1},
+  {id:'inl', group:'Atlas · every attempt', title:'POSE INLIERS', sig:[{k:'inl', name:'pose inliers', dots:1}], gates:[['cold_min_inl','cold ≥'],['track_min_inl','track ≥']], zero:1},
+  {id:'ds', group:'Atlas · every attempt', title:'|SCALE − 1|', sig:[{k:'ds', name:'|scale − 1|', dots:1}], gates:[['cold_scale_tol','cold ≤'],['confirm_scale_tol','confirm ≤']], zero:1},
+  {id:'imargin', group:'Atlas · every attempt', title:'INLIER MARGIN  ×  (cold starts: winner\'s inliers ÷ the best other place\'s; top edge: above 8)', sig:[{k:'imargin', name:'inlier margin', dots:1}], gates:[['cold_min_inl_margin','cold ≥']], zero:1, cap:8},
+  {id:'margin', group:'Atlas · every attempt', title:'SCORE MARGIN  ×  (cold starts: winner\'s score ÷ its best rival\'s; top edge: above 8, or no rival)', sig:[{k:'margin', name:'score margin', dots:1}], gates:[['cold_min_margin','cold ≥']], zero:1, cap:8},
+  {id:'rms', group:'Atlas · every attempt', title:'REPROJECTION RMS  px', sig:[{k:'rms', name:'rms px', dots:1}], zero:1},
+  {id:'tilt', group:'Atlas · every attempt', title:'TILT  °', sig:[{k:'tilt', name:'tilt °', dots:1}], zero:1},
+  {id:'hdg', group:'Atlas · every attempt', title:'HEADING  °', sig:[{k:'hdg', name:'heading °', dots:1}]},
+  {id:'ms', group:'Atlas · every attempt', title:'COMPUTE PER ATTEMPT  ms', sig:[{k:'ms', name:'ms', dots:1}], zero:1},
+  {id:'err', group:'Atlas · fixes', title:'FIX ERROR vs GPS  m', sig:[{k:'err', name:'error vs GPS', fixdots:1}, {k:'sigma', name:'published σ', fixline:1}], zero:1},
+  {id:'alt', group:'Flight', title:'ALTITUDE  m', sig:[{k:'balt', name:'baro AGL (atlas: 5 s zero)'}, {k:'aagl', name:'AGL atlas used', dots:1}, {k:'galt', name:'GPS above takeoff'}, {k:'agl', name:'rangefinder (reference)'}, {k:'falt', name:'FCU GPS above takeoff'}], gates:[['arm_agl','arm ≥'],['arm_agl_m','arm ≥'],['cold_min_agl','cold start ≥'],['cold_min_agl_m','cold start ≥']], zero:1},
+  {id:'fgps', group:'FCU', title:'GPS FIX  0 none · 3 3D · 4 DGPS · 5 RTK float · 6 RTK fixed', sig:[{k:'ffix', name:'FCU fix_type'}], zero:1},
+  {id:'fsep', group:'FCU', title:'EC − FCU SEPARATION  m  (two receivers, one aircraft)', sig:[{k:'fsep', name:'separation'}], zero:1},
+  {id:'facc2', group:'FCU', title:'GPS ACCURACY  m  (FCU reported)', sig:[{k:'fhacc', name:'h_acc'}, {k:'fvacc', name:'v_acc'}], zero:1},
+  {id:'fsat', group:'FCU', title:'SATELLITES  (FCU)', sig:[{k:'fsats', name:'satellites'}], zero:1},
+  {id:'fimu', group:'FCU', title:'FCU IMU  |accel| m/s²', sig:[{k:'facc', name:'|accel|'}], zero:0},
+  {id:'fgyro', group:'FCU', title:'FCU IMU  |gyro| rad/s', sig:[{k:'fgyr', name:'|gyro|'}], zero:1},
+  {id:'fmag', group:'FCU', title:'FCU MAGNETOMETER  |B| µT and heading °', sig:[{k:'fmagb', name:'|B| µT'}, {k:'fmaghdg', name:'mag heading °'}], zero:1},
+  {id:'fbar', group:'FCU', title:'FCU BAROMETER  Pa about its own median', sig:[{k:'fbaro', name:'ΔPa'}], zero:0},
+  {id:'attd', group:'Flight', title:'ATLAS ATTITUDE  °', sig:[{k:'roll', name:'roll'}, {k:'pitch', name:'pitch'}]},
+  {id:'spd', group:'Flight', title:'SPEED  m/s', sig:[{k:'gspd', name:'GPS'}, {k:'vspd', name:'VIO'}], zero:1},
+  {id:'vio', group:'Flight', title:'VIO POSITION  m', sig:[{k:'vx', name:'x'}, {k:'vy', name:'y'}, {k:'vz', name:'z'}]},
+  {id:'jload', group:'Jetson', title:'JETSON LOAD  %', sig:[{k:'cpu', name:'CPU'}, {k:'gpu', name:'GPU'}, {k:'mem', name:'memory'}], zero:1},
+  {id:'jclk', group:'Jetson', title:'JETSON CLOCKS  MHz', sig:[{k:'gmhz', name:'GPU'}, {k:'cmhz', name:'CPU'}], zero:1},
+  {id:'jtmp', group:'Jetson', title:'JETSON HOTTEST ZONE  °C', sig:[{k:'temp', name:'°C'}]},
+];
+const DEFAULT_SIG = ['lg', 'inl', 'ds', 'err', 'balt', 'aagl', 'gspd'];
+const LAYERS = [
+  ['track', 'GPS track', true], ['fixes', 'atlas fixes', true], ['prov', 'provisional locks', false], ['fails', 'failed attempts', false],
+  ['errs', 'error lines, fix → GPS', false], ['cmp', 'compare folder', true], ['trail', 'only up to the cursor', false],
+  ['window', 'only the plotted time window', false], ['follow', 'follow the cursor', false]];
+
+const S = {runs:[], R:null, C:null, t:0, v0:0, v1:1, playing:false, speed:10, hidden:new Set(),
+           sel:new Set(loadSel()), layers:Object.fromEntries(LAYERS.map(l => [l[0], l[2]])), tiles:null};
+function loadSel(){
+  try {
+    let v = JSON.parse(localStorage.getItem('de.sel'));
+    if (Array.isArray(v)){
+      if (localStorage.getItem('de.selv') !== 'baro'){  // atlas switched to the baro: move the old rangefinder pick, once
+        v = [...new Set(v.map(k => k === 'agl' ? 'balt' : k))];
+        localStorage.setItem('de.sel', JSON.stringify(v)); localStorage.setItem('de.selv', 'baro');
+      }
+      return v;
+    }
+  } catch (e) {}
+  return DEFAULT_SIG;
+}
+function saveSel(){ try { localStorage.setItem('de.sel', JSON.stringify([...S.sel])); } catch (e) {} }
+
+function lb(a, x){ let lo = 0, hi = a.length; while (lo < hi){ const m = (lo + hi) >> 1; if (a[m] < x) lo = m + 1; else hi = m; } return lo; }
+const F = a => Float64Array.from(a || [], v => v === null ? NaN : v);
+function niceStep(span, n){ const raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fmtRel(s, span){ if (span > 240){ const sg = s < 0 ? '−' : '+', a = Math.abs(s); return sg + Math.floor(a / 60) + ':' + String(Math.floor(a % 60)).padStart(2, '0'); } return (s < 0 ? '−' : '+') + Math.abs(s).toFixed(span < 20 ? 1 : 0); }
+const IST = t => new Date(t * 1000).toLocaleTimeString('en-GB', {timeZone:'Asia/Kolkata', hour12:false});
+const f1 = (v, d = 1) => v === null || v === undefined || isNaN(v) ? '–' : v === Infinity ? '∞' : Number(v).toFixed(d);
+function G19(lat, lon){ const n = 256 * Math.pow(2, 19); return [(lon + 180) / 360 * n, (1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2 * n]; }
+function LL(gx, gy){ const n = 256 * Math.pow(2, 19); return [Math.atan(Math.sinh(Math.PI * (1 - 2 * gy / n))) * 180 / Math.PI, gx / n * 360 - 180]; }
+function interp(ta, va, t){ const i = lb(ta, t); if (i <= 0) return va[0]; if (i >= ta.length) return va[ta.length - 1]; const w = (t - ta[i - 1]) / (ta[i] - ta[i - 1] || 1); return va[i - 1] + w * (va[i] - va[i - 1]); }
+
+function prep(j){
+  const R = {j, name:j.name, kind:j.kind, T0:j.T0, T1:j.T1, gates:j.gates || {}};
+  const g = j.gps; R.g = {t:F(g.t), lat:F(g.lat), lon:F(g.lon), alt:F(g.alt), spd:F(g.spd)};
+  R.g.gx = new Float64Array(R.g.t.length); R.g.gy = new Float64Array(R.g.t.length);
+  for (let i = 0; i < R.g.t.length; i++){ const p = G19(R.g.lat[i], R.g.lon[i]); R.g.gx[i] = p[0]; R.g.gy[i] = p[1]; }
+  const a = j.attempts; R.A = {t:F(a.t), o:a.o.slice(), msg:a.o, path:a.path || [], n:a.t.length};
+  for (const k of ['lg','inl','rms','ds','tilt','hdg','agl','ms','sigma','lat','lon','cerr']) R.A[k] = F(a[k]);
+  for (const [k, s] of [['margin', 'margin'], ['imargin', 'inl_margin']]) R.A[k] = Float64Array.from(a[s] || [], v => v === null ? NaN : v === -1 ? Infinity : v);
+  R.A.gx = new Float64Array(R.A.n); R.A.gy = new Float64Array(R.A.n); R.A.fix = new Int32Array(R.A.n).fill(-1);
+  for (let i = 0; i < R.A.n; i++){ const p = isNaN(R.A.lat[i]) ? [NaN, NaN] : G19(R.A.lat[i], R.A.lon[i]); R.A.gx[i] = p[0]; R.A.gy[i] = p[1]; }
+  const f = j.fixes; R.Fx = {t:F(f.t), lat:F(f.lat), lon:F(f.lon), cold:f.cold, err:F(f.err), ee:F(f.ee), en:F(f.en), sigma:F(f.sigma), glat:F(f.glat), glon:F(f.glon), n:f.t.length};
+  R.Fx.gx = new Float64Array(R.Fx.n); R.Fx.gy = new Float64Array(R.Fx.n); R.Fx.hx = new Float64Array(R.Fx.n); R.Fx.hy = new Float64Array(R.Fx.n);
+  for (let i = 0; i < R.Fx.n; i++){
+    const p = G19(R.Fx.lat[i], R.Fx.lon[i]); R.Fx.gx[i] = p[0]; R.Fx.gy[i] = p[1];
+    const q = isNaN(R.Fx.glat[i]) ? [NaN, NaN] : G19(R.Fx.glat[i], R.Fx.glon[i]); R.Fx.hx[i] = q[0]; R.Fx.hy[i] = q[1];
+    const k = lb(R.A.t, R.Fx.t[i] - 5e-4); if (k < R.A.n && Math.abs(R.A.t[k] - R.Fx.t[i]) < 1e-3) R.A.fix[k] = i;
+  }
+  R.P = (j.provisional || []).map(p => { const q = p.lat === null ? [NaN, NaN] : G19(p.lat, p.lon);
+    return {...p, gx:q[0], gy:q[1], t:p.i < R.A.n ? R.A.t[p.i] : p.t, end:p.end_i !== null && p.end_i < R.A.n ? R.A.t[p.end_i] : p.end}; });
+  R.A.pv = new Int32Array(R.A.n).fill(-1); R.A.pvEnd = new Int32Array(R.A.n).fill(-1);
+  R.P.forEach((p, k) => { if (p.i < R.A.n) R.A.pv[p.i] = k; if (p.end_i !== null && p.end_i < R.A.n) R.A.pvEnd[p.end_i] = k; });
+  for (let i = 0; i < R.A.n; i++){
+    const o = R.A.o[i];
+    if (o === 'below cold_min_agl: no cold start') R.A.o[i] = LOW;
+    else if (o === 'below accept' && R.A.path[i] === 'track') R.A.o[i] = 'below accept · tracked';
+    else if (o === 'track' && R.A.fix[i] >= 0 && R.Fx.cold[R.A.fix[i]]) R.A.o[i] = 'COLD';
+  }
+  R.fails = []; for (let i = 0; i < R.A.n; i++) if (oc(R.A.o[i]).fail) R.fails.push(R.A.t[i]);
+  R.counts = {}; for (const o of R.A.o) R.counts[o] = (R.counts[o] || 0) + 1;
+  R.ev = j.events || []; R.evt = F(R.ev.map(e => e[0]));
+  R.gaps = j.att_gaps ? [F(j.att_gaps[0]), F(j.att_gaps[1])] : null;
+  R.frames = (j.frames || []).map(x => ({...x}));
+  R.ser = {};
+  return R;
+}
+
+function SER(R, k){ try { return SER_(R, k); } catch (e){ return (R.ser[k] = null); } }
+function SER_(R, k){
+  if (!R) return null;
+  if (R.ser[k]) return R.ser[k];
+  const j = R.j, A = R.A; let s = null;
+  const line = (t, v) => ({t:F(t), v:F(v)});
+  if (['lg','inl','ds','rms','tilt','hdg','ms','margin','imargin'].includes(k)) s = {t:A.t, v:A[k], dots:1};
+  else if (k === 'aagl') s = {t:A.t, v:A.agl, dots:1};
+  else if (k === 'err') s = {t:R.Fx.t, v:R.Fx.err, fix:1};
+  else if (k === 'sigma') s = {t:R.Fx.t, v:R.Fx.sigma};
+  else if (k === 'agl') s = line(j.range.t, j.range.v);
+  else if (k === 'galt') s = {t:R.g.t, v:R.g.alt};
+  else if (k === 'gspd') s = {t:R.g.t, v:R.g.spd};
+  else if (k === 'balt' && j.baro) s = line(j.baro.t, j.baro.alt);
+  else if ((k === 'roll' || k === 'pitch') && j.att) s = line(j.att.t, j.att[k]);
+  else if (k === 'vspd' && j.vio) s = line(j.vio.t, j.vio.spd);
+  else if (['vx','vy','vz'].includes(k) && j.vio) s = line(j.vio.t, j.vio[k.slice(1)]);
+  else if (['cpu','gpu','mem','gmhz','cmhz','temp'].includes(k) && j.hw) s = line(j.hw.t, j.hw[k]);
+  else if (k === 'ffix' && j.fcu_gps) s = line(j.fcu_gps.t, j.fcu_gps.fix);
+  else if (k === 'fsats' && j.fcu_gps) s = line(j.fcu_gps.t, j.fcu_gps.sats);
+  else if (k === 'fhacc' && j.fcu_gps) s = line(j.fcu_gps.t, j.fcu_gps.hacc);
+  else if (k === 'fvacc' && j.fcu_gps) s = line(j.fcu_gps.t, j.fcu_gps.vacc);
+  else if (k === 'fsep' && j.fcu_sep) s = line(j.fcu_sep.t, j.fcu_sep.v);
+  else if (k === 'falt' && j.fcu_alt) s = line(j.fcu_alt.t, j.fcu_alt.alt);
+  else if (k === 'facc' && j.fcu_imu) s = line(j.fcu_imu.t, j.fcu_imu.acc);
+  else if (k === 'fgyr' && j.fcu_imu) s = line(j.fcu_imu.t, j.fcu_imu.gyr);
+  else if (k === 'fmagb' && j.fcu_mag) s = line(j.fcu_mag.t, j.fcu_mag.b);
+  else if (k === 'fmaghdg' && j.fcu_mag) s = line(j.fcu_mag.t, j.fcu_mag.hdg);
+  else if (k === 'fbaro' && j.fcu_baro) s = line(j.fcu_baro.t, j.fcu_baro.dp);
+  return (R.ser[k] = s);
+}
+
+class MapView {
+  constructor(cv){
+    this.cv = cv; this.ctx = cv.getContext('2d'); this.z = 15; this.cx = 0; this.cy = 0;
+    this.cache = new Map(); this.ver = ''; this.pending = false; this.hover = null;
+    let drag = null;
+    cv.addEventListener('wheel', e => { if (!wheelZoom(e, cv.parentElement)) return; e.preventDefault(); const r = cv.getBoundingClientRect(); this.zoomAt(e.clientX - r.left, e.clientY - r.top, -e.deltaY * 0.0022); }, {passive:false});
+    cv.addEventListener('mousedown', e => { drag = {x:e.clientX, y:e.clientY, cx:this.cx, cy:this.cy, moved:false}; cv.classList.add('drag'); });
+    window.addEventListener('mousemove', e => {
+      if (drag){ const s = Math.pow(2, 19 - this.z), dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+        this.cx = drag.cx - dx * s; this.cy = drag.cy - dy * s; this.draw(); return; }
+      if (e.target === cv){ const r = cv.getBoundingClientRect(); this.onHover && this.onHover(e.clientX - r.left, e.clientY - r.top, e); }
+    });
+    window.addEventListener('mouseup', e => { if (drag && !drag.moved && e.target === cv){ const r = cv.getBoundingClientRect(); this.onClick && this.onClick(e.clientX - r.left, e.clientY - r.top); } drag = null; cv.classList.remove('drag'); });
+    cv.addEventListener('mouseleave', () => { hideTip(); this.onLeave && this.onLeave(); });
+    cv.addEventListener('dblclick', e => { const r = cv.getBoundingClientRect(); this.zoomAt(e.clientX - r.left, e.clientY - r.top, 1); });
+    new ResizeObserver(() => this.draw()).observe(cv);
+  }
+  size(){ return [this.cv.clientWidth, this.cv.clientHeight]; }
+  toS(gx, gy){ const s = Math.pow(2, this.z - 19), [W, H] = this.size(); return [(gx - this.cx) * s + W / 2, (gy - this.cy) * s + H / 2]; }
+  toG(sx, sy){ const s = Math.pow(2, 19 - this.z), [W, H] = this.size(); return [this.cx + (sx - W / 2) * s, this.cy + (sy - H / 2) * s]; }
+  zoomAt(sx, sy, dz){ const [gx, gy] = this.toG(sx, sy); this.z = Math.max(14, Math.min(22.5, this.z + dz)); const [nx, ny] = this.toS(gx, gy); const s = Math.pow(2, 19 - this.z); this.cx += (nx - sx) * s; this.cy += (ny - sy) * s; this.draw(); }
+  fit(gx0, gy0, gx1, gy1, pad = 40){ const [W, H] = this.size(); this.cx = (gx0 + gx1) / 2; this.cy = (gy0 + gy1) / 2; const span = Math.max((gx1 - gx0) / Math.max(W - 2 * pad, 50), (gy1 - gy0) / Math.max(H - 2 * pad, 50), 1e-6); this.z = Math.max(14, Math.min(21, 19 - Math.log2(span))); this.draw(); }
+  tile(z, x, y){
+    const key = z + '/' + x + '/' + y; let e = this.cache.get(key);
+    if (!e){
+      const T = S.tiles, inR = r => r && x >= r[0] && x <= r[1] && y >= r[2] && y <= r[3];
+      if (!T || (inR(T.ranges[z]) ? T.state !== 'ready' : !(T.ncr && inR(T.ncr.ranges[z])))) return null;
+      e = {img:new Image(), ok:false}; e.img.onload = () => { e.ok = true; this.draw(); }; e.img.onerror = () => { e.bad = true; };
+      e.img.src = 'tiles/' + key + '.jpg'; this.cache.set(key, e);  // ?v: tiles changed source (whole-NCR everywhere); bypass old browser caches
+      if (this.cache.size > 1500){ const k0 = this.cache.keys().next().value; this.cache.delete(k0); }
+    }
+    return e;
+  }
+  draw(){ if (this.pending) return; this.pending = true; requestAnimationFrame(() => { this.pending = false; this.render(); }); }
+  render(){
+    const cv = this.cv, ctx = this.ctx, d = DPR(), [W, H] = this.size();
+    if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)){ cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
+    ctx.setTransform(d, 0, 0, d, 0, 0); ctx.fillStyle = '#dbe1ea'; ctx.fillRect(0, 0, W, H);
+    if (S.tiles && (S.tiles.state === 'ready' || S.tiles.ncr)){
+      const tz = Math.max(S.tiles.zmin, Math.min(S.tiles.zmax, Math.round(this.z)));
+      const ts = 256 * Math.pow(2, this.z - tz), f = Math.pow(2, 19 - tz);
+      const [g0x, g0y] = this.toG(0, 0), [g1x, g1y] = this.toG(W, H);
+      const x0 = Math.floor(g0x / f / 256), x1 = Math.floor(g1x / f / 256), y0 = Math.floor(g0y / f / 256), y1 = Math.floor(g1y / f / 256);
+      ctx.imageSmoothingQuality = 'high';
+      for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++){
+        const [sx, sy] = this.toS(x * 256 * f, y * 256 * f);
+        const e = this.tile(tz, x, y);
+        if (e && e.ok){ ctx.drawImage(e.img, sx, sy, ts + 0.6, ts + 0.6); continue; }
+        for (let k = 1; k <= 5; k++){  // a coarser tile, scaled, until this one arrives
+          const pz = tz - k; if (pz < S.tiles.zmin) break;
+          const p = this.cache.get(pz + '/' + (x >> k) + '/' + (y >> k));
+          if (p && p.ok){ const sub = 256 / (1 << k); ctx.drawImage(p.img, (x - ((x >> k) << k)) * sub, (y - ((y >> k) << k)) * sub, sub, sub, sx, sy, ts + 0.6, ts + 0.6); break; }
+        }
+      }
+    }
+    this.onOverlay && this.onOverlay(ctx, W, H);
+  }
+}
+
+const figs = [];
+function buildFigs(){
+  const box = $('#figs'); box.innerHTML = ''; figs.length = 0;
+  if (!S.R){ box.innerHTML = '<div class="empty">pick a folder</div>'; return; }
+  for (const def of FIGS){
+    if (def.kind !== 'timeline' && !def.sig.some(s => S.sel.has(s.k) && SER(S.R, s.k))) continue;
+    const el = document.createElement('div'); el.className = 'fig';
+    const hd = document.createElement('div'); hd.className = 'fighd';
+    const sigs = def.kind === 'timeline' ? [] : def.sig.filter(s => S.sel.has(s.k) && SER(S.R, s.k));
+    let leg = '';
+    sigs.forEach((s, i) => { if (s.dots || s.fixdots) return; leg += '<span class="lg"><i style="background:' + LINE[i % LINE.length] + '"></i>' + esc(s.name) + '</span>'; });
+    if (S.C && S.layers.cmp && def.kind !== 'timeline') leg += '<span class="lg cmp"><i style="border-color:var(--dim)"></i>' + esc(S.C.name) + '</span>';
+    hd.innerHTML = '<span>' + esc(def.title) + '</span>' + leg;
+    const cv = document.createElement('canvas');
+    const h = def.kind === 'timeline' ? (S.C ? 84 : 66) : 118;
+    cv.style.height = h + 'px';
+    el.appendChild(hd); el.appendChild(cv); box.appendChild(el);
+    const f = {def, cv, ctx:cv.getContext('2d'), sigs, h}; figs.push(f); plotEvents(f);
+  }
+  $('#sigCount').textContent = S.sel.size + ' on';
+  drawFigs();
+}
+let figPending = false;
+function drawFigs(){ if (figPending) return; figPending = true; requestAnimationFrame(() => { figPending = false; for (const f of figs) drawFig(f); }); }
+const PL = 58, PR = 12, PT = 7, PB = 17;
+function xOf(f, t){ const W = f.cv.clientWidth - PL - PR; return PL + (t - S.v0) / (S.v1 - S.v0) * W; }
+function tOf(f, x){ const W = f.cv.clientWidth - PL - PR; return S.v0 + (x - PL) / W * (S.v1 - S.v0); }
+
+function drawFig(f){
+  const cv = f.cv, ctx = f.ctx, d = DPR(), W = cv.clientWidth, H = f.h;
+  if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)){ cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
+  ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, W, H);
+  const R = S.R, pw = W - PL - PR, ph = H - PT - PB;
+  ctx.font = '10px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  const span = S.v1 - S.v0, st = niceStep(span, Math.max(2, pw / 90)), r0 = S.v0 - R.T0;
+  ctx.strokeStyle = '#eef1f6'; ctx.fillStyle = '#8592a5'; ctx.textAlign = 'center'; ctx.lineWidth = 1;
+  for (let s = Math.ceil(r0 / st) * st; s <= r0 + span; s += st){
+    const x = xOf(f, R.T0 + s); ctx.beginPath(); ctx.moveTo(x, PT); ctx.lineTo(x, PT + ph); ctx.stroke();
+    ctx.fillText(fmtRel(s, span), x, H - 5);
+  }
+  if (f.def.kind === 'timeline') return drawTimeline(f, W, H, pw, ph);
+  let lo = Infinity, hi = -Infinity;
+  const runs = [[R, false]]; if (S.C && S.layers.cmp) runs.push([S.C, true]);
+  const cap = f.def.cap, pinned = v => v === Infinity || (cap !== undefined && v > cap);  // drawn on the top edge
+  const acc = (s, hideOK) => { if (!s) return; const i0 = Math.max(0, lb(s.t, S.v0) - 1), i1 = Math.min(s.t.length, lb(s.t, S.v1) + 1);
+    for (let i = i0; i < i1; i++){ const v = s.v[i]; if (isNaN(v) || pinned(v)) continue; if (s.dots && S.hidden.has(hideOK.A.o[i])) continue; if (v < lo) lo = v; if (v > hi) hi = v; } };
+  for (const [RR] of runs) for (const sg of f.sigs) acc(SER(RR, sg.k), RR);
+  const gates = (f.def.gates || []).map(g => [R.gates[g[0]], g[1]]).filter(g => typeof g[0] === 'number');
+  for (const g of gates){ lo = Math.min(lo, g[0]); hi = Math.max(hi, g[0]); }
+  if (!isFinite(lo)){ lo = 0; hi = 1; }
+  if (f.def.zero && lo > 0) lo = 0;
+  if (hi - lo < 1e-9){ hi = lo + 1; }
+  const pad = (hi - lo) * 0.08; hi += pad; if (!f.def.zero || lo < 0) lo -= pad;
+  const Y = v => PT + (1 - (v - lo) / (hi - lo)) * ph;
+  f.Y = Y; f.lo = lo; f.hi = hi; f.yd = v => pinned(v) ? PT + 4 : Y(v);  // where a dot goes
+  const ys = niceStep(hi - lo, Math.max(2, ph / 28)); ctx.textAlign = 'right';
+  for (let v = Math.ceil(lo / ys) * ys; v <= hi; v += ys){
+    const y = Y(v); ctx.strokeStyle = '#eef1f6'; ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(PL + pw, y); ctx.stroke();
+    ctx.fillStyle = '#8592a5'; ctx.fillText(Math.abs(v) < 1e-9 ? '0' : +v.toPrecision(4), PL - 5, y + 3);
+  }
+  ctx.save(); ctx.beginPath(); ctx.rect(PL, PT, pw, ph); ctx.clip();
+  const gm = new Map();
+  for (const [gv, gl] of gates){ const nm = gl.slice(0, -2), op = gl.slice(-1); const e = gm.get(gv); if (e) e.nm += ' & ' + nm; else gm.set(gv, {nm, op}); }
+  let lastY = -1e9, lx = PL + pw - 4;
+  for (const [gv, e] of [...gm.entries()].sort((a, b) => Y(a[0]) - Y(b[0]))){
+    const y = Y(gv); ctx.strokeStyle = 'rgba(220,38,38,.55)'; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(PL + pw, y); ctx.stroke(); ctx.setLineDash([]);
+    lx = y - lastY < 15 ? lx - 120 : PL + pw - 4; lastY = y;
+    const lab = e.nm + ' ' + e.op + ' ' + gv; ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(lx - ctx.measureText(lab).width - 3, y - 13, ctx.measureText(lab).width + 6, 11);
+    ctx.fillStyle = 'rgba(190,18,60,.95)'; ctx.fillText(lab, lx, y - 4);
+  }
+  for (const [RR, isCmp] of runs){
+    f.sigs.forEach((sg, i) => {
+      const s = SER(RR, sg.k); if (!s || s.dots || s.fix) return;
+      const i0 = Math.max(0, lb(s.t, S.v0) - 1), i1 = Math.min(s.t.length, lb(s.t, S.v1) + 1);
+      ctx.strokeStyle = sg.fixline ? '#8592a5' : LINE[i % LINE.length]; ctx.lineWidth = isCmp ? 1.2 : 1.4; ctx.setLineDash(isCmp ? [4, 3] : []);
+      ctx.beginPath(); let pen = false;
+      for (let k = i0; k < i1; k++){ const v = s.v[k]; if (isNaN(v)){ pen = false; continue; } const x = xOf(f, s.t[k]), y = Y(v); if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; } }
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+  }
+  for (const [RR, isCmp] of runs){
+    f.sigs.forEach(sg => {
+      const s = SER(RR, sg.k); if (!s || !(s.dots || s.fix)) return;
+      const i0 = Math.max(0, lb(s.t, S.v0) - 1), i1 = Math.min(s.t.length, lb(s.t, S.v1) + 1);
+      const r = (S.v1 - S.v0) < 120 ? 3.4 : 2.6;
+      for (let k = i0; k < i1; k++){
+        const v = s.v[k]; if (isNaN(v)) continue;
+        let col;
+        if (s.fix){ col = RR.Fx.cold[k] ? OUT.COLD.plot : OUT.track.plot; }
+        else { const o = RR.A.o[k]; if (S.hidden.has(o)) continue; col = oc(o).plot; }
+        const x = xOf(f, s.t[k]), y = f.yd(v);
+        ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+        if (isCmp || pinned(v)){ ctx.strokeStyle = col; ctx.lineWidth = 1.3; ctx.stroke(); } else { ctx.fillStyle = col; ctx.fill(); }
+      }
+    });
+  }
+  ctx.restore();
+  drawCursor(f, ctx, ph);
+}
+
+function drawTimeline(f, W, H, pw, ph){
+  const ctx = f.ctx, R = S.R;
+  const rows = [['this folder', R]]; if (S.C) rows.push(['compare', S.C]);
+  const hasGap = !!R.gaps, rh = (ph - 14 - (hasGap ? 9 : 0)) / rows.length;
+  ctx.textAlign = 'right';
+  rows.forEach(([lab, RR], ri) => {
+    const y0 = PT + ri * rh;
+    ctx.fillStyle = '#8592a5'; ctx.fillText(ri === 0 ? (RR.kind !== 'flight' ? 'replay' : 'flight') : (RR.kind !== 'flight' ? 'replay' : 'flight'), PL - 5, y0 + rh / 2 + 3);
+    ctx.fillStyle = '#f4f6fa'; ctx.fillRect(PL, y0 + 1, pw, rh - 2);
+    const i0 = lb(RR.A.t, S.v0), i1 = lb(RR.A.t, S.v1), wide = Math.max(1.5, Math.min(5, pw / Math.max(1, i1 - i0) * 0.8));
+    for (const big of [false, true])  // the prominent ones (provisional locks) last, so the frames after them never cover them
+      for (let i = i0; i < i1; i++){ const o = RR.A.o[i], c = oc(o); if (S.hidden.has(o) || !!c.big !== big) continue; const w = big ? Math.max(3, wide * 2) : wide; ctx.fillStyle = c.plot; ctx.fillRect(xOf(f, RR.A.t[i]) - w / 2, y0 + 2, w, rh - 4); }
+  });
+  let y = PT + rows.length * rh;
+  if (hasGap){
+    ctx.fillStyle = '#8592a5'; ctx.fillText('no att', PL - 5, y + 7);
+    ctx.fillStyle = 'rgba(225,29,72,.75)';
+    const [a, b] = R.gaps, i0 = Math.max(0, lb(b, S.v0)), i1 = lb(a, S.v1);
+    for (let i = i0; i < i1; i++){ const x0 = xOf(f, a[i]), x1 = xOf(f, b[i]); ctx.fillRect(x0, y + 1, Math.max(1, x1 - x0), 6); }
+    y += 9;
+  }
+  ctx.fillStyle = '#8592a5'; ctx.fillText('warnings', PL - 5, y + 10);
+  const i0 = lb(R.evt, S.v0), i1 = lb(R.evt, S.v1);
+  for (let i = i0; i < i1; i++){ const e = R.ev[i]; ctx.fillStyle = e[1] >= 40 ? '#dc2626' : '#c2740a'; ctx.fillRect(xOf(f, e[0]) - 0.75, y + 2, 1.5, 10); }
+  drawCursor(f, ctx, ph);
+}
+
+function drawCursor(f, ctx, ph){
+  const x = xOf(f, S.t); if (x < PL || x > f.cv.clientWidth - PR) return;
+  ctx.strokeStyle = '#0a84c2'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, PT - 3); ctx.lineTo(x, PT + ph + 2); ctx.stroke();
+}
+
+function plotEvents(f){
+  const cv = f.cv; let drag = null;
+  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), t = tOf(f, e.clientX - r.left), k = Math.pow(1.0018, e.deltaY);
+    let a = t - (t - S.v0) * k, b = t + (S.v1 - t) * k; if (b - a < 2){ const m = (a + b) / 2; a = m - 1; b = m + 1; }
+    const lo = S.R.T0 - 5, hi = S.R.T1 + 5; if (a < lo){ b += lo - a; a = lo; } if (b > hi){ a -= b - hi; b = hi; } S.v0 = Math.max(lo, a); S.v1 = Math.min(hi, b); drawFigs(); drawMap(); }, {passive:false});
+  cv.addEventListener('mousedown', e => { drag = {x:e.clientX, v0:S.v0, v1:S.v1, moved:false}; });
+  window.addEventListener('mousemove', e => {
+    if (drag && e.buttons){ const dx = e.clientX - drag.x; if (Math.abs(dx) > 3) drag.moved = true;
+      if (drag.moved){ const dt = -dx / (cv.clientWidth - PL - PR) * (drag.v1 - drag.v0); S.v0 = drag.v0 + dt; S.v1 = drag.v1 + dt; drawFigs(); drawMap(); } return; }
+    if (e.target === cv) plotHover(f, e);
+  });
+  window.addEventListener('mouseup', e => {
+    if (drag && !drag.moved && e.target === cv){
+      const r = cv.getBoundingClientRect(), i = hitAttempt(f, e.clientX - r.left, e.clientY - r.top);
+      if (i >= 0){ setT(S.R.A.t[i]); openInspector(i); } else setT(tOf(f, e.clientX - r.left));
+    }
+    drag = null;
+  });
+  cv.addEventListener('mouseleave', hideTip);
+  cv.addEventListener('dblclick', () => { S.v0 = S.R.T0; S.v1 = S.R.T1; drawFigs(); drawMap(); });
+}
+
+function plotHover(f, e){
+  const r = f.cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, t = tOf(f, mx), R = S.R;
+  let html = '<div class="tx">' + fmtRel(t - R.T0, 1) + ' s · ' + IST(t) + '</div>';
+  if (f.def.kind === 'timeline'){
+    const i = nearestAttempt(R, t, (S.v1 - S.v0) / (f.cv.clientWidth - PL - PR) * 6);
+    if (i >= 0) html += attemptLine(R, i);
+    const k = lb(R.evt, t - 2); if (k < R.ev.length && Math.abs(R.ev[k][0] - t) < 2) html += '<div style="color:#c2740a">' + esc(R.ev[k][3].slice(0, 90)) + '</div>';
+  } else {
+    for (const [RR, isCmp] of [[R, false]].concat(S.C && S.layers.cmp ? [[S.C, true]] : [])){
+      f.sigs.forEach((sg, i) => {
+        const s = SER(RR, sg.k); if (!s) return;
+        if (s.dots || s.fix){
+          const tol = (S.v1 - S.v0) / (f.cv.clientWidth - PL - PR) * 6, k = nearestIn(s.t, t, tol); if (k < 0) return;
+          const lab = s.fix ? (RR.Fx.cold[k] ? OUT.COLD.label : OUT.track.label) : oc(RR.A.o[k]).label;
+          html += '<div>' + (isCmp ? '<span class="dim">[' + (RR.kind !== 'flight' ? 'replay' : 'flight') + ']</span> ' : '') + esc(sg.name) + ' <b>' + f1(s.v[k], Math.abs(s.v[k]) < 1 ? 4 : 1) + '</b> <span class="dim">' + esc(lab) + '</span></div>';
+        } else {
+          const k = nearestIn(s.t, t, Infinity); if (k < 0 || isNaN(s.v[k])) return;
+          html += '<div><span style="color:' + LINE[i % LINE.length] + '">■</span> ' + (isCmp ? '<span class="dim">[cmp]</span> ' : '') + esc(sg.name) + ' <b>' + f1(s.v[k], 2) + '</b></div>';
+        }
+      });
+    }
+  }
+  showTip(e.clientX, e.clientY, html);
+}
+
+function hitAttempt(f, mx, my){
+  const R = S.R, tol = 7;
+  if (f.def.kind === 'timeline'){ const i = nearestIn(R.A.t, tOf(f, mx), (S.v1 - S.v0) / (f.cv.clientWidth - PL - PR) * tol); return i; }
+  if (!f.Y) return -1;
+  let best = -1, bd = tol;
+  for (const sg of f.sigs){
+    const s = SER(R, sg.k); if (!s || !(s.dots || s.fix)) continue;
+    const i0 = Math.max(0, lb(s.t, tOf(f, mx - tol))), i1 = Math.min(s.t.length, lb(s.t, tOf(f, mx + tol)) + 1);
+    for (let k = i0; k < i1; k++){
+      if (isNaN(s.v[k]) || (!s.fix && S.hidden.has(R.A.o[k]))) continue;
+      const d = Math.hypot(xOf(f, s.t[k]) - mx, f.yd(s.v[k]) - my);
+      if (d < bd){ bd = d; best = s.fix ? attemptIndexOfFix(R, k) : k; }
+    }
+  }
+  return best;
+}
+function nearestIn(ta, t, tol){ const i = lb(ta, t); let best = -1, bd = tol; for (const k of [i - 1, i]) if (k >= 0 && k < ta.length && Math.abs(ta[k] - t) <= bd){ bd = Math.abs(ta[k] - t); best = k; } return best; }
+function nearestAttempt(R, t, tol){ return nearestIn(R.A.t, t, tol); }
+function attemptLine(R, i){ const A = R.A; return '<div><b style="color:' + oc(A.o[i]).plot + '">' + esc(oc(A.o[i]).label) + '</b> · LG ' + f1(A.lg[i], 0) + ' · inl ' + f1(A.inl[i], 0) +
+  (isNaN(A.margin[i]) ? '' : ' · margin ' + f1(A.margin[i], 2) + ' · inl margin ' + f1(A.imargin[i], 2)) + '</div>'; }
+function provFate(R, P){
+  return P.fate === 'confirmed' ? 'confirmed by tracking, published from ' + fmtRel(P.end - R.T0, 1) + ' s'
+    : P.fate === 'dropped' ? 'dropped at ' + fmtRel(P.end - R.T0, 1) + ' s (' + P.why + '): nothing from it was published'
+    : 'still unconfirmed when the run ended: nothing from it was published';
+}
+function provLine(R, P){ return '<div><b style="color:' + OUT[PROV].plot + '">provisional lock</b> · candidate ' + f1(P.err, 1) + ' m from GPS</div><div class="dim">' + esc(provFate(R, P)) + '</div>'; }
+function showTip(x, y, html){ const t = $('#tip'); t.innerHTML = html; t.style.display = 'block'; const w = t.offsetWidth; t.style.left = (x + 14 + w > innerWidth ? x - w - 14 : x + 14) + 'px'; t.style.top = (y + 14) + 'px'; }
+function hideTip(){ $('#tip').style.display = 'none'; }
+
+let MV = null;
+function drawMap(){ MV && MV.draw(); }
+function visible(t){ if (S.layers.trail && t > S.t) return false; if (S.layers.window && (t < S.v0 || t > S.v1)) return false; return true; }
+function marker(ctx, x, y, o, isCmp, big){
+  const c = oc(o), r = (big ? 5.5 : c.small ? 2.4 : 3.6) * (MV.z >= 18 ? 1.25 : 1);
+  ctx.beginPath();
+  if (c.diamond){ ctx.moveTo(x, y - r * 1.25); ctx.lineTo(x + r * 1.25, y); ctx.lineTo(x, y + r * 1.25); ctx.lineTo(x - r * 1.25, y); ctx.closePath(); }
+  else if (isCmp){ ctx.rect(x - r, y - r, 2 * r, 2 * r); }
+  else ctx.arc(x, y, r, 0, 7);
+  if (isCmp || c.hollow){ ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.stroke(); ctx.lineWidth = 1.3; ctx.strokeStyle = c.map; ctx.stroke(); }
+  else { ctx.fillStyle = c.map; ctx.fill(); ctx.lineWidth = 0.9; ctx.strokeStyle = 'rgba(20,20,20,.75)'; ctx.stroke(); }
+}
+function provMarker(ctx, x, y, P, isCmp){
+  const c = OUT[PROV], r = 7 * (MV.z >= 18 ? 1.2 : 1);
+  ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.95, y + r * 0.62); ctx.lineTo(x - r * 0.95, y + r * 0.62); ctx.closePath();
+  if (P.fate === 'confirmed' && !isCmp){ ctx.fillStyle = c.map; ctx.fill(); ctx.lineWidth = 1.1; ctx.strokeStyle = 'rgba(20,20,20,.8)'; ctx.stroke(); return; }
+  ctx.lineWidth = 3.2; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.stroke(); ctx.lineWidth = 1.7; ctx.strokeStyle = c.map; ctx.stroke();
+  if (P.fate !== 'confirmed'){ const q = r * 0.32; ctx.beginPath(); ctx.moveTo(x - q, y - q + 1); ctx.lineTo(x + q, y + q + 1); ctx.moveTo(x + q, y - q + 1); ctx.lineTo(x - q, y + q + 1); ctx.lineWidth = 1.6; ctx.stroke(); }
+}
+function provOf(R, i){ const k = R.A.pv[i]; return k >= 0 && !isNaN(R.P[k].gx) ? R.P[k] : null; }
+function overlay(ctx, W, H){
+  const R = S.R; if (!R) return;
+  const toS = (x, y) => MV.toS(x, y);
+  if (false && S.tiles && S.tiles.bounds){ const b = S.tiles.bounds, p = G19(b.n, b.w), q = G19(b.s, b.e), a = toS(p[0], p[1]), c = toS(q[0], q[1]);
+    ctx.strokeStyle = 'rgba(27,36,50,.55)'; ctx.setLineDash([6, 4]); ctx.lineWidth = 1; ctx.strokeRect(a[0], a[1], c[0] - a[0], c[1] - a[1]); ctx.setLineDash([]); }
+  const runs = [[R, false]]; if (S.C && S.layers.cmp) runs.push([S.C, true]);
+  if (S.layers.track){
+    const g = R.g; const iEnd = S.layers.trail ? lb(g.t, S.t) : g.t.length;
+    const path = (i0, i1) => { ctx.beginPath(); let pen = false; for (let i = i0; i < i1; i++){ if (S.layers.window && (g.t[i] < S.v0 || g.t[i] > S.v1)){ pen = false; continue; } const [x, y] = toS(g.gx[i], g.gy[i]); if (pen) ctx.lineTo(x, y); else { ctx.moveTo(x, y); pen = true; } } };
+    if (S.layers.trail){ path(0, g.t.length); ctx.strokeStyle = 'rgba(0,229,255,.25)'; ctx.lineWidth = 1.2; ctx.stroke(); }
+    path(0, iEnd); ctx.strokeStyle = 'rgba(0,40,60,.55)'; ctx.lineWidth = 3.2; ctx.stroke(); ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+  MV.pts = [];  // hover / click targets
+  for (const [RR, isCmp] of runs){
+    const A = RR.A, Fx = RR.Fx;
+    const showProv = S.layers.prov && !S.hidden.has(PROV);
+    if (S.layers.fails) for (let i = 0; i < A.n; i++){  // (a provisional lock is drawn at its candidate, below)
+      const o = A.o[i], c = oc(o); if (c.fix || provOf(RR, i) || S.hidden.has(o) || isNaN(A.gx[i]) || !visible(A.t[i])) continue;
+      const [x, y] = toS(A.gx[i], A.gy[i]); if (x < -10 || y < -10 || x > W + 10 || y > H + 10) continue;
+      marker(ctx, x, y, o, isCmp); MV.pts.push([x, y, RR, i, 'a']);
+    }
+    if (S.layers.errs) for (let i = 0; i < Fx.n; i++){
+      if (isNaN(Fx.hx[i]) || !visible(Fx.t[i])) continue; const a = toS(Fx.gx[i], Fx.gy[i]), b = toS(Fx.hx[i], Fx.hy[i]);
+      ctx.strokeStyle = 'rgba(255,59,48,.85)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+    if (S.layers.errs && showProv) for (const P of RR.P){  // candidate -> where GPS says the drone was
+      if (isNaN(P.gx) || isNaN(A.gx[P.i]) || !visible(P.t)) continue; const a = toS(P.gx, P.gy), b = toS(A.gx[P.i], A.gy[P.i]);
+      ctx.strokeStyle = OUT[PROV].map; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (S.layers.fixes) for (let i = 0; i < Fx.n; i++){
+      const o = Fx.cold[i] ? 'COLD' : 'track'; if (S.hidden.has(o) || !visible(Fx.t[i])) continue;
+      const [x, y] = toS(Fx.gx[i], Fx.gy[i]); if (x < -10 || y < -10 || x > W + 10 || y > H + 10) continue;
+      if (Fx.cold[i]){ ctx.beginPath(); ctx.arc(x, y, 8, 0, 7); ctx.lineWidth = 2.2; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.lineWidth = 1.2; ctx.strokeStyle = OUT.COLD.map; ctx.stroke(); }
+      marker(ctx, x, y, o, isCmp); MV.pts.push([x, y, RR, i, 'f']);
+    }
+    if (showProv) RR.P.forEach((P, k) => {
+      if (isNaN(P.gx) || !visible(P.t)) return;
+      const [x, y] = toS(P.gx, P.gy); if (x < -10 || y < -10 || x > W + 10 || y > H + 10) return;
+      provMarker(ctx, x, y, P, isCmp); MV.pts.push([x, y, RR, k, 'p']);
+    });
+  }
+  const mpv = 156543.03392 * Math.cos(LL(MV.cx, MV.cy)[0] * Math.PI / 180) / Math.pow(2, MV.z), far = [], placed = [];  // metres per screen px
+  if (S.layers.prov && !S.hidden.has(PROV)) R.P.forEach((P, k) => { if (!isNaN(P.gx) && visible(P.t)) far.push([P.gx, P.gy, 'p', k, OUT[PROV].map, 'provisional']); });
+  if (S.layers.fixes && !S.hidden.has('COLD')) for (let i = 0; i < R.Fx.n; i++) if (R.Fx.cold[i] && visible(R.Fx.t[i])) far.push([R.Fx.gx[i], R.Fx.gy[i], 'f', i, OUT.COLD.map, 'lock start']);
+  for (const [gx, gy, sub, k, col, lab] of far){
+    const [x, y] = toS(gx, gy); if (x >= -6 && y >= -6 && x <= W + 6 && y <= H + 6) continue;
+    const dx = x - W / 2, dy = y - H / 2, mg = 24, s = Math.min((W / 2 - mg) / Math.max(Math.abs(dx), 1e-6), (H / 2 - mg) / Math.max(Math.abs(dy), 1e-6));
+    const ex = W / 2 + dx * s, ey = H / 2 + dy * s; if (placed.some(q => Math.hypot(q[0] - ex, q[1] - ey) < 18)) continue; placed.push([ex, ey]);
+    const a = Math.atan2(dy, dx), c = Math.cos(a), sn = Math.sin(a);
+    ctx.beginPath(); ctx.moveTo(ex + c * 11, ey + sn * 11); ctx.lineTo(ex - c * 6 - sn * 8, ey - sn * 6 + c * 8); ctx.lineTo(ex - c * 6 + sn * 8, ey - sn * 6 - c * 8); ctx.closePath();
+    ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(20,20,20,.85)'; ctx.stroke();
+    const t = lab + ' ' + f1(Math.hypot(dx, dy) * mpv / 1000, 1) + ' km', tx = ex - c * 16, ty = ey - sn * 16 + 3;
+    ctx.font = '10px monospace'; ctx.textAlign = Math.abs(c) < 0.3 ? 'center' : c > 0 ? 'right' : 'left';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.strokeText(t, tx, ty); ctx.fillStyle = '#1b2432'; ctx.fillText(t, tx, ty);
+    MV.pts.push([ex, ey, R, k, 'far', gx, gy, sub]);
+  }
+  const g = R.g;
+  if (g.t.length){
+    const gx = interp(g.t, g.gx, S.t), gy = interp(g.t, g.gy, S.t), [x, y] = toS(gx, gy);
+    const i = lb(R.A.t, S.t + 1e-6) - 1;
+    if (i >= 0 && S.t - R.A.t[i] < 3){
+      const fi = R.A.fix[i], pv = provOf(R, i);
+      let p = fi >= 0 ? toS(R.Fx.gx[fi], R.Fx.gy[fi]) : pv ? toS(pv.gx, pv.gy) : (isNaN(R.A.gx[i]) ? null : toS(R.A.gx[i], R.A.gy[i]));
+      if (fi >= 0 && !isNaN(R.Fx.hx[fi])){ const h = toS(R.Fx.hx[fi], R.Fx.hy[fi]); ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(h[0], h[1]); ctx.stroke(); }
+      if (pv && !isNaN(R.A.gx[i])){ const h = toS(R.A.gx[i], R.A.gy[i]); ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(h[0], h[1]); ctx.stroke(); }
+      if (p){ ctx.beginPath(); ctx.arc(p[0], p[1], 11, 0, 7); ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.stroke(); ctx.lineWidth = 2; ctx.strokeStyle = oc(R.A.o[i]).map; ctx.stroke(); }
+    }
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#0a84c2'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 2.2, 0, 7); ctx.fillStyle = '#0a84c2'; ctx.fill();
+  }
+  const [clat] = LL(MV.cx, MV.cy), mpp = 156543.03392 * Math.cos(clat * Math.PI / 180) / Math.pow(2, MV.z);
+  let m = niceStep(mpp * 110, 1); if (m / mpp > 150) m /= 2; const L = m / mpp;
+  ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect(10, H - 30, L + 16, 22);
+  ctx.strokeStyle = '#1b2432'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(18, H - 13); ctx.lineTo(18 + L, H - 13); ctx.moveTo(18, H - 17); ctx.lineTo(18, H - 9); ctx.moveTo(18 + L, H - 17); ctx.lineTo(18 + L, H - 9); ctx.stroke();
+  ctx.fillStyle = '#1b2432'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.fillText(m >= 1000 ? (m / 1000) + ' km' : m + ' m', 18 + L / 2, H - 18);
+}
+function mapHover(sx, sy, e){
+  const [gx, gy] = MV.toG(sx, sy), [lat, lon] = LL(gx, gy);
+  $('#mapInfo').textContent = lat.toFixed(6) + ', ' + lon.toFixed(6) + '  ·  z ' + MV.z.toFixed(1);
+  let best = null, bd = 9;
+  for (const p of MV.pts || []){ const d = Math.hypot(p[0] - sx, p[1] - sy); if (d < bd){ bd = d; best = p; } }
+  MV.hover = best;
+  if (!best){ hideTip(); return; }
+  const [, , RR, i, kind] = best, tag = RR === S.C ? '<span class="dim">[' + (RR.kind !== 'flight' ? 'replay' : 'flight') + ']</span> ' : '';
+  const sub = kind === 'far' ? best[7] : kind;  // an edge arrow stands for a fix ('f') or a provisional lock ('p')
+  let html;
+  if (sub === 'f'){ const F_ = RR.Fx; html = '<div class="tx">' + tag + fmtRel(F_.t[i] - RR.T0, 1) + ' s</div><div><b>' + (F_.cold[i] ? OUT.COLD.label : OUT.track.label) + '</b> · error ' + f1(F_.err[i], 1) + ' m</div>'; }
+  else if (sub === 'p'){ const P = RR.P[i]; html = '<div class="tx">' + tag + fmtRel(P.t - RR.T0, 1) + ' s · drawn at atlas\'s chosen candidate</div>' + provLine(RR, P) + attemptLine(RR, P.i); }
+  else { html = '<div class="tx">' + tag + fmtRel(RR.A.t[i] - RR.T0, 1) + ' s · drawn at the GPS position</div>' + attemptLine(RR, i); }
+  showTip(e.clientX, e.clientY, html + '<div class="dim">' + (kind === 'far' ? 'off the view: click to go there' : 'click to jump here') + '</div>');
+}
+function mapClick(){
+  const p = MV.hover; if (!p) return; const [, , RR, i, kind] = p;
+  if (kind === 'far'){ MV.cx = p[5]; MV.cy = p[6]; if (MV.z < 16) MV.z = 16; setT(p[7] === 'f' ? RR.Fx.t[i] : RR.P[i].t); return; }
+  setT(kind === 'f' ? RR.Fx.t[i] : kind === 'p' ? RR.P[i].t : RR.A.t[i]);
+  if (RR === S.R) openInspector(kind === 'f' ? attemptIndexOfFix(RR, i) : kind === 'p' ? RR.P[i].i : i);
+}
+
+function setT(t, from){
+  const R = S.R; if (!R) return;
+  S.t = Math.max(R.T0, Math.min(R.T1, t));
+  if (typeof V !== 'undefined' && V.data && !V.syncing && from !== 'vio') vioFromAtlas();
+  if (S.t < S.v0 || S.t > S.v1){ const w = S.v1 - S.v0; S.v0 = S.t - w / 2; S.v1 = S.t + w / 2; }
+  if (from !== 'scrub') $('#scrub').value = S.t - R.T0;
+  if (S.layers.follow && R.g.t.length){ MV.cx = interp(R.g.t, R.g.gx, S.t); MV.cy = interp(R.g.t, R.g.gy, S.t); }
+  $('#tcode').innerHTML = fmtRel(S.t - R.T0, 1) + ' s <span class="d">/ ' + fmtRel(R.T1 - R.T0, 1) + ' · ' + IST(S.t) + ' IST</span>';
+  drawFigs(); drawMap(); readout(); urlSoon(); inspFollow();
+}
+
+function confirming(R, i){ const m = R.A.msg[i]; return m === 'tracked, confirming' || m === 'provisional lock not confirmed' || (R.A.o[i] === 'COLD' && R.A.path[i] === 'track'); }
+function gateRows(R, i){
+  const A = R.A, G = R.gates, o = A.o[i], p = A.path[i];
+  const cold = p ? p === 'cold' : o === 'below accept' || o === 'COLD', searched = !oc(o).nofit;
+  const rows = [], chk = (name, v, op, g, d, ok) => {
+    const pass = !searched || g === undefined || isNaN(v) ? null : ok !== undefined ? ok : op === '≥' ? v >= g : v <= g;
+    rows.push({name, v, op, g: searched ? g : undefined, d, pass}); };
+  chk('LighterGlue inliers', A.lg[i], '≥', cold ? G.cold_min_lg : G.track_min_lg, 0);
+  chk('pose inliers', A.inl[i], '≥', cold ? G.cold_min_inl : G.track_min_inl, 0);
+  if (cold){
+    chk('|scale − 1|', A.ds[i], '≤', G.cold_scale_tol, 4);
+    if (!isNaN(A.margin[i]) || G.cold_min_margin !== undefined) chk('score margin', A.margin[i], '≥', G.cold_min_margin, 2);
+    if (!isNaN(A.imargin[i]) || G.cold_min_inl_margin !== undefined) chk('inlier margin', A.imargin[i], '≥', G.cold_min_inl_margin, 2);
+  } else if (G.cold_confirm && confirming(R, i)){
+    chk('pose inliers, to confirm', A.inl[i], '≥', G.cold_min_inl, 0);
+    chk('|scale − 1| (or LG ≥ ' + G.cold_min_lg + ')', A.ds[i], '≤', G.confirm_scale_tol, 4,
+        A.ds[i] <= G.confirm_scale_tol || (G.cold_min_lg !== undefined && A.lg[i] >= G.cold_min_lg));
+  }
+  return {rows, cold};
+}
+function whyText(R, i, rows){
+  const A = R.A, o = A.o[i], G = R.gates, m = A.msg[i], c = oc(o), rel = t => fmtRel(t - R.T0, 1) + ' s', cold = gateRows(R, i).cold;
+  const minAgl = G.cold_min_agl !== undefined ? 'cold_min_agl ' + G.cold_min_agl + ' m' : G.cold_min_agl_m !== undefined ? 'cold_min_agl_m ' + G.cold_min_agl_m + ' m' : null;
+  const nConf = G.cold_confirm ? G.cold_confirm + ' tracked frame' + (G.cold_confirm > 1 ? 's' : '') : 'cold_confirm tracked frames';
+  const ended = A.pvEnd[i] >= 0 ? R.P[A.pvEnd[i]] : null;  // the provisional lock this attempt confirmed or dropped
+  const dropped = ended && ended.fate === 'dropped' && m !== PROV ? ended : null;
+  const gone = dropped ? ' This dropped the provisional lock from ' + rel(dropped.t) + ' (its candidate ' + f1(dropped.err, 0) + ' m from GPS' +
+    (dropped.err > 50 ? ': a wrong one, rightly dropped' : '') + '), so nothing from it was published.' : '';
+  if (o === LOW) return ['grey', 'Not searched: AGL ' + f1(A.agl[i], 0) + ' m is below the cold-start altitude' + (minAgl ? ' (' + minAgl + ')' : '') + ', so atlas only tracks here, and it had no lock.'];
+  if (c.why) return [c.grey && !gone ? 'grey' : '', c.why + gone];
+  if (m === PROV){
+    const P = A.pv[i] >= 0 ? R.P[A.pv[i]] : null, far = P && P.err > 50;
+    let s = 'Cold start accepted, but only as a provisional lock: nothing is published until ' + nConf + ' in a row confirm it ' +
+      '(each needs the cold inlier bar, and |scale − 1| ≤ confirm_scale_tol or LighterGlue ≥ cold_min_lg); the last of them is the lock\'s first fix. One that fails drops the lock.';
+    if (!P) return ['ok', s];
+    if (far) s += ' Its candidate lay ' + f1(P.err, 0) + ' m from GPS: a wrong candidate, ' + (P.fate === 'confirmed' ? 'and tracking confirmed it -- a wrong lock, published from ' + rel(P.end) + '.'
+      : P.fate === 'dropped' ? 'dropped at ' + rel(P.end) + ' (' + P.why + ') before anything was published.' : 'still unconfirmed when the run ended.');
+    else s += ' Its candidate lay ' + f1(P.err, 1) + ' m from GPS; ' + provFate(R, P) + '.';
+    return [far ? (P.fate === 'confirmed' ? '' : 'grey') : P.fate === 'confirmed' ? 'ok' : 'grey', s];
+  }
+  if (m === 'tracked, confirming'){
+    let j = i, k = 0; for (; j >= 0 && A.msg[j] !== PROV; j--) if (A.msg[j] === 'tracked, confirming') k++;
+    const P = j >= 0 && A.pv[j] >= 0 ? R.P[A.pv[j]] : null, far = P && P.err > 50;
+    return [far ? '' : 'ok', 'Confirming the provisional lock' + (j >= 0 ? ' from ' + rel(A.t[j]) : '') + ': tracked frame ' + k + (G.cold_confirm ? ' of the ' + G.cold_confirm + ' it needs' : '') +
+      ' passed the tracked test and the confirmation test. Not published: the lock publishes from the frame that completes its confirmation.' +
+      (far ? ' Its candidate lay ' + f1(P.err, 0) + ' m from GPS: tracking is confirming a wrong lock.' : '')];
+  }
+  if (c.fix){
+    const fi = A.fix[i], e = fi >= 0 ? R.Fx.err[fi] : NaN, P = ended && ended.fate === 'confirmed' ? ended : null;
+    const what = o !== 'COLD' ? 'Accepted while tracking' : P ? 'The provisional lock from ' + rel(P.t) + ' is confirmed (' + nConf + '): this is its first published fix, the start of the lock'
+      : 'Accepted as a cold start: the start of a new lock';
+    if (e > 50) return ['', what + ', but ' + f1(e, 0) + ' m from GPS: a wrong lock that passed every gate' + (P ? ' and its confirmation.' : '.')];
+    return ['ok', what + '.'];
+  }
+  const bad = rows.filter(r => r.pass === false), fails = bad.map(r => r.name + ' ' + f1(r.v, r.d) + ' (needs ' + r.op + ' ' + r.g + ')').join(' and ');
+  if (m === 'provisional lock not confirmed') return ['', 'Provisional lock not confirmed: this tracked frame failed ' + (bad.length ? fails
+    : 'a gate the diagnostics do not record, every logged one passing (the tracked jump limit' + (G.track_jump_m !== undefined ? ', track_jump_m ' + G.track_jump_m + ' m' : '') +
+      ', the tracked scale limit, or a confident LighterGlue fit disagreeing)') + ', so the lock was dropped.' + gone];
+  if (o === 'tracked fit failed') return ['', 'The tracked search found no usable fit' + (bad.length ? ': ' + bad.map(r => r.name + ' ' + f1(r.v, r.d) + ' vs ' + r.op + ' ' + r.g).join(', ') : '') + '.' + (gone || ' Tracking continues until the lock runs out of failures.')];
+  const cand = cold && !isNaN(A.cerr[i]) ? ' Its best candidate lay ' + f1(A.cerr[i], A.cerr[i] < 100 ? 1 : 0) + ' m from GPS.' : '';
+  const kept = o.includes('lock kept') ? ' The lock was kept.' : o === 'below accept · tracked' ? ' The lock was not kept for it: a failure, and max_fails of them in a row drop the lock.' : '';
+  const said = OUT[o] ? '' : ' atlas: "' + m + '".';
+  if (bad.length) return ['', 'Rejected by ' + fails + '.' + kept + said + cand + gone];
+  return ['', 'Every logged gate passes, so one the diagnostics do not record rejected it' + (cold ? (isNaN(A.margin[i]) ? ' (the cold-start margin, for one: this folder does not log it).' : '.')
+    : ' (the tracked jump limit' + (G.track_jump_m !== undefined ? ', track_jump_m ' + G.track_jump_m + ' m' : '') + ', or the tracked scale limit).') + kept + said + cand + gone];
+}
+function attemptCard(R, i, title, bare){
+  const A = R.A, c = oc(A.o[i]), {rows, cold} = gateRows(R, i), [cls, why] = whyText(R, i, rows), dt = S.t - A.t[i];
+  let h = '<div class="card"><h3>' + title + '<span class="sub">' + (dt < 0.05 ? 'at the cursor' : f1(dt, 1) + ' s before the cursor') + ' · ' + fmtRel(A.t[i] - R.T0, 1) + ' s</span></h3>';
+  h += '<span class="pill" style="background:' + c.plot + '" title="atlas: ' + esc(A.msg[i]) + (A.path[i] ? ' · path ' + esc(A.path[i]) : '') + '">' + esc(c.label) + '</span>';
+  h += '<div class="kv" style="margin-top:8px">';
+  for (const r of rows) h += '<span class="k">' + r.name + '</span><span class="v ' + (r.pass === false ? 'bad' : r.pass ? 'ok' : '') + '">' + f1(r.v, r.d) + '</span><span class="g">' + (r.g !== undefined ? r.op + ' ' + r.g : '') + '</span>';
+  const pv = A.pv[i] >= 0, taken = pv || c.fix;
+  if (cold && !isNaN(A.cerr[i])) h += '<span class="k">' + (taken ? 'candidate vs GPS' : 'best candidate vs GPS') + '</span><span class="v ' + (taken && A.cerr[i] > 50 ? 'bad' : '') + '">' + f1(A.cerr[i], 1) + ' m</span><span class="g"></span>';
+  h += '<span class="k">rms</span><span class="v">' + f1(A.rms[i], 2) + ' px</span><span class="g"></span>';
+  h += '<span class="k">tilt · heading</span><span class="v">' + f1(A.tilt[i], 2) + '° · ' + f1(A.hdg[i], 0) + '°</span><span class="g"></span>';
+  h += '<span class="k">AGL atlas used</span><span class="v">' + f1(A.agl[i], 1) + ' m</span><span class="g"></span>';
+  h += '<span class="k">compute</span><span class="v">' + f1(A.ms[i], 0) + ' ms</span><span class="g"></span>';
+  const fi = A.fix[i];
+  if (fi >= 0) h += '<span class="k">error vs GPS</span><span class="v ' + (R.Fx.err[fi] > 50 ? 'bad' : '') + '">' + f1(R.Fx.err[fi], 1) + ' m</span><span class="g">E ' + f1(R.Fx.ee[fi], 1) + ' N ' + f1(R.Fx.en[fi], 1) + '</span>' +
+    '<span class="k">published σ</span><span class="v">' + f1(R.Fx.sigma[fi], 2) + ' m</span><span class="g"></span>';
+  h += '</div><div class="why ' + cls + '">' + esc(why) + '</div>';
+  if (R === S.R && !bare) h += '<button class="ibtn" data-inspect="' + i + '">inspect this frame against the map ▸</button>';
+  return h + '</div>';
+}
+function readout(){}
+function readout_(){
+  const R = S.R, el = $('#readout'); if (!R){ el.innerHTML = ''; return; }
+  let h = '<div class="card"><h3>CURSOR<span class="sub">' + IST(S.t) + ' IST</span></h3><div class="big">' + fmtRel(S.t - R.T0, 1) + '<small>s into the flight</small></div>';
+  const g = R.g;
+  if (g.t.length){
+    const bs = SER(R, 'balt'), baro = !!(bs && bs.t.length), agl = baro ? bs : SER(R, 'agl'), a = agl && agl.t.length ? interp(agl.t, agl.v, S.t) : NaN;
+    h += '<div class="kv" style="margin-top:6px"><span class="k">GPS</span><span class="v">' + f1(interp(g.t, g.lat, S.t), 6) + ', ' + f1(interp(g.t, g.lon, S.t), 6) + '</span><span class="g"></span>' +
+      '<span class="k">' + (baro ? 'baro AGL' : 'rangefinder AGL') + '</span><span class="v">' + f1(a, 1) + ' m</span><span class="g"></span>' +
+      '<span class="k">GPS speed</span><span class="v">' + f1(interp(g.t, g.spd, S.t), 1) + ' m/s</span><span class="g"></span></div>';
+  }
+  h += '</div>';
+  const i = lb(R.A.t, S.t + 1e-6) - 1;
+  h += i >= 0 ? attemptCard(R, i, 'LAST ATTEMPT') : '<div class="card"><h3>LAST ATTEMPT</h3><div class="dim">none yet</div></div>';
+  if (S.C){ const k = lb(S.C.A.t, S.t + 1e-6) - 1; if (k >= 0) h += attemptCard(S.C, k, 'COMPARE · ' + (S.C.kind !== 'flight' ? 'REPLAY' : 'FLIGHT')); }
+  const ev = R.ev.filter(e => Math.abs(e[0] - S.t) <= 6);
+  h += '<div class="card"><h3>WARNINGS NEAR THE CURSOR<span class="sub">±6 s · ' + ev.length + '</span></h3>';
+  h += ev.length ? '<div class="evl">' + ev.map(e => '<div data-t="' + e[0] + '"><span class="tt">' + fmtRel(e[0] - R.T0, 1) + '</span><span class="' + (e[1] >= 40 ? 'e' : 'w') + '">' + esc(e[3]) + '</span></div>').join('') + '</div>' : '<div class="dim">none</div>';
+  h += '</div>';
+  const s = R.j.summary;
+  h += '<div class="card"><h3>THIS FOLDER<span class="sub">' + esc(R.name) + '</span></h3><div class="kv">' +
+    '<span class="k">attempts</span><span class="v">' + s.attempts + '</span><span class="g"></span>' +
+    '<span class="k">fixes (GPS-scored)</span><span class="v">' + s.fixes + ' (' + s.scored + ')</span><span class="g"></span>' +
+    '<span class="k">locks started</span><span class="v">' + f1(s.locks, 0) + '</span><span class="g"></span>' +
+    (s.provisional ? '<span class="k">provisional locks</span><span class="v">' + s.provisional + '</span><span class="g"></span>' +
+      '<span class="k">… confirmed · dropped</span><span class="v">' + s.confirmed + ' · ' + s.dropped + '</span><span class="g"></span>' : '') +
+    '<span class="k">median · p90 error</span><span class="v">' + f1(s.med, 2) + ' · ' + f1(s.p90, 2) + ' m</span><span class="g"></span>' +
+    '<span class="k">max · &gt;100 m</span><span class="v">' + f1(s.max, 1) + ' m · ' + s.far + '</span><span class="g"></span>';
+  h += '</div><div class="cfgl">';
+  for (const [k, v] of Object.entries(R.gates).concat(Object.entries(R.j.config || {}))) h += '<div><span class="k">' + esc(k) + '</span><span class="v">' + esc(v) + '</span></div>';
+  h += '</div>';
+  if (R.frames.length) h += '<div class="frl">' + R.frames.map(x => '<button data-t="' + x.t + '" title="' + esc(x.file) + '">' + esc(x.kind) + ' ' + fmtRel(x.t_rel, 1) + ' s</button>').join('') + '</div><div class="dim" style="font-size:10px;margin-top:4px">saved frames: one per cold start</div>';
+  el.innerHTML = h + '</div>';
+}
+
+function buildLeft(){
+  $('#layerList').innerHTML = LAYERS.map(([k, name]) => '<label class="row' + (S.layers[k] ? ' on' : '') + '"><input type="checkbox" data-layer="' + k + '"' + (S.layers[k] ? ' checked' : '') + '><span class="nm">' + name + '</span></label>').join('');
+  buildOutcomes();
+  let h = '', grp = null;
+  for (const def of FIGS){
+    if (def.kind === 'timeline') continue;
+    if (def.group !== grp){ grp = def.group; h += '<div class="gh">' + esc(grp) + '</div>'; }
+    for (const s of def.sig){
+      const avail = !S.R || SER(S.R, s.k);
+      h += '<label class="row' + (S.sel.has(s.k) ? ' on' : '') + (avail ? '' : ' off') + '" title="' + esc(def.title) + (avail ? '' : ' -- not in this folder') + '"><input type="checkbox" data-sig="' + s.k + '"' + (S.sel.has(s.k) ? ' checked' : '') + (avail ? '' : ' disabled') + '><span class="nm">' + esc(s.name) + '</span><span class="ct">' + esc(def.title.split('  ')[1] || '') + '</span></label>';
+    }
+  }
+  $('#sigList').innerHTML = h;
+}
+function mkIcon(o){
+  const c = oc(o); return '<svg class="mk" viewBox="0 0 12 12">' + (c.tri ? '<path d="M6 1 11.2 10 .8 10Z" fill="' + c.map + '" stroke="#333" stroke-width=".8"/>' :
+    c.diamond ? '<path d="M6 1 11 6 6 11 1 6Z" fill="' + (c.hollow ? 'none' : c.map) + '" stroke="' + (c.hollow ? c.plot : '#333') + '" stroke-width="' + (c.hollow ? 1.8 : .8) + '"/>' :
+    '<circle cx="6" cy="6" r="' + (c.small ? 2.6 : 4) + '" fill="' + c.map + '" stroke="#333" stroke-width=".8"/>' + (c.ring ? '<circle cx="6" cy="6" r="5.4" fill="none" stroke="' + c.plot + '" stroke-width="1"/>' : '')) + '</svg>';
+}
+function provIcon(ok){ const c = OUT[PROV]; return '<svg class="mk" viewBox="0 0 12 12"><path d="M6 1 11.2 10 .8 10Z" fill="' + (ok ? c.map : 'none') + '" stroke="' + (ok ? '#333' : c.plot) + '" stroke-width="' + (ok ? .8 : 1.5) + '"/>' +
+  (ok ? '' : '<path d="M4.6 5.4 7.4 8.2M7.4 5.4 4.6 8.2" stroke="' + c.plot + '" stroke-width="1.2"/>') + '</svg>'; }
+function buildOutcomes(){
+  const R = S.R, has = o => (R && R.counts[o]) || (S.C && S.C.counts[o]);
+  const names = Object.keys(OUT).filter(o => !OUT[o].opt || has(o)).concat(R ? Object.keys(R.counts).filter(o => !OUT[o]) : []);
+  $('#outList').innerHTML = names.map(o => '<div class="row' + (S.hidden.has(o) ? ' off' : '') + '" data-out="' + esc(o) + '" title="' + esc(oc(o).label) + ' -- atlas message: ' + esc(oc(o).msg || o) + '">' + mkIcon(o) + '<span class="nm">' + esc(oc(o).label) + '</span><span class="ct">' + (R ? (R.counts[o] || 0) : '') + (S.C ? ' · ' + (S.C.counts[o] || 0) : '') + '</span></div>').join('');
+  const P = R ? R.P : [], nOk = P.filter(p => p.fate === 'confirmed').length;
+  $('#mapLegend').innerHTML = '<div><svg class="mk" viewBox="0 0 12 12"><path d="M1 6H11" stroke="#00e5ff" stroke-width="2.4"/></svg>GPS</div>' +
+    ['track', 'COLD'].filter(o => R && R.counts[o]).map(o => '<div>' + mkIcon(o) + (o === 'COLD' ? 'VPS, new lock' : 'VPS fix') + '</div>').join('');
+  if (true) return;  // public demo: the rest of the legend names atlas's internal outcomes
+  $('#mapLegend').innerHTML += names.filter(o => o !== PROV && !S.hidden.has(o) && R && R.counts[o]).map(o => '<div>' + mkIcon(o) + oc(o).label + '</div>').join('') +
+    (P.length && !S.hidden.has(PROV) ? (nOk ? '<div>' + provIcon(true) + 'provisional lock, confirmed (' + nOk + ')</div>' : '') +
+      (P.length > nOk ? '<div>' + provIcon(false) + 'provisional lock, not confirmed (' + (P.length - nOk) + ')</div>' : '') : '') +
+    (S.C && S.layers.cmp ? '<div><svg class="mk" viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="#333" stroke-width="1.4"/></svg>squares: ' + esc(S.C.kind !== 'flight' ? 'the replay' : 'the flight') + '</div>' : '') +
+    '<div class="note">A failed attempt has no atlas position: it is drawn where GPS says the drone was.' + (P.length ? ' A provisional lock is drawn at the candidate atlas chose, dashed to GPS with error lines on.' : '') + '</div>';
+}
+
+
+const I = {open:false, i:-1, src:'atlas', rot:0, view:'natural', stretch:true, mask:true, blend:0.6, geo:null, img:{}, T:{cam:null, map:null},
+           hover:null, req:0, maskImg:null, maskRun:null, timer:null};
+const PANES = ['A', 'B', 'C', 'D'], COL = {C:'cam'}, FIXED = {A:1, B:1};  // A and B at their own size; C zooms; D is a tile map
+const PANE_VER = 5;  // bump when a pane's rendering changes
+const pEl = p => document.querySelector('.ipane[data-p="' + p + '"]');
+function paneMsg(p, m){ pEl(p).querySelector('.imsg').textContent = m; }
+function paneLab(p, h){ pEl(p).querySelector('.ilab').innerHTML = h; }
+
+function sizeInsp(){
+  if (!I.open) return;
+  const lower = $('#lower'), fixed = $('#insp').offsetHeight - $('#igrid').offsetHeight;
+  const ph = Math.max(140, Math.floor((lower.clientHeight - fixed - 6 * 3 - 8 - 44) / 2));  // public demo: 44 px of the 3-D view peeks below
+  $('#igrid').style.setProperty('--ph', ph + 'px');
+}
+function openInspector(i){
+  if (!S.R || i < 0 || i >= S.R.A.n) return;
+  const first = !I.open; I.open = true; $('#insp').hidden = false; I.rot = 0; $('#inspRot').value = 0; I.mvFitted = false;
+  if (first){ const mp = $('#mapPane'); I.mapBasis = mp.style.flexBasis; mp.style.flexBasis = '150px'; }
+  sizeInsp();
+  I.src = hasAtlas(S.R, i) ? 'atlas' : 'gps';
+  loadInspect(i, true); if (first) $('#lower').scrollTop = 0;
+}
+function closeInspector(){ I.open = false; $('#insp').hidden = true; $('#mapPane').style.flexBasis = I.mapBasis || ''; drawMap(); drawFigs(); }
+
+async function loadInspect(i, reset){
+  const R = S.R, my = ++I.req; I.i = i;
+  const hasFix = hasAtlas(R, i), src = hasFix ? I.src : 'gps';
+  const q = '?t=' + R.A.t[i].toFixed(6) + '&src=' + src + '&rot=' + I.rot;
+  let geo;
+  try { const r = await fetch('/api/inspect/' + encodeURIComponent(R.name) + q); geo = await r.json(); if (!r.ok) throw new Error(geo.error || r.status); }
+  catch (e){ if (my === I.req){ I.geo = null; I.img = {}; for (const p of PANES) paneMsg(p, 'nothing to show: ' + e.message); drawInsp(); } return; }
+  if (my !== I.req) return;
+  I.geo = geo; I.srcEff = src;
+  if (reset || !I.T.cam) fitCol('cam');
+  if (reset || !I.mvFitted) fitD(false); else { const q = G19(geo.lat, geo.lon); I.mv.cx = q[0]; I.mv.cy = q[1]; I.mv.draw(); }
+  inspHeader(hasFix);
+  if (R.j.gear_mask && I.maskRun !== R.name){ I.maskRun = R.name; I.maskImg = null; const m = new Image(); m.onload = () => { I.maskImg = tintMask(m); drawInsp(); }; m.src = '/run/' + encodeURIComponent(R.name) + '/frames/attempts/gear_mask.png'; }
+  const url = p => 'data/' + R.name + '/' + p.toLowerCase() + '/' + geo.i + '.webp';
+  I.img.O = null;
+  if (geo.ortho){ const om = new Image(); om.onload = () => { if (my !== I.req) return; I.img.O = om; if (I.mv) I.mv.draw(); }; om.src = url('O'); }
+  for (const p of (geo.ortho ? ['A'] : ['A', 'B'])){  // public demo: B only feeds D's overlay without an ortho; C is not shown
+    if ((p === 'A' || p === 'B') && !geo.frame){
+      I.img[p] = null;
+      paneMsg(p, R.A.o[i] === LOW ? 'not searched: below the cold-start altitude, so no frame was matched'
+        : oc(R.A.o[i]).nofit ? 'no frame matched: ' + oc(R.A.o[i]).label : 'no stored frame for this attempt: regenerate the folder with flight_report.py or bagplay.py');
+      continue;
+    }
+    paneMsg(p, I.img[p] ? '' : 'rendering…');  // (D is never fetched)
+    const im = new Image();
+    im.onload = () => { if (my !== I.req) return; I.img[p] = im; paneMsg(p, ''); drawInsp(); };
+    im.onerror = () => { if (my !== I.req) return; I.img[p] = null; paneMsg(p, 'could not render this pane'); drawInsp(); };
+    im.src = url(p);
+  }
+  drawInsp();
+}
+
+function inspHeader(hasFix){
+  const g = I.geo, R = S.R, c = oc(R.A.o[g.i] !== undefined ? R.A.o[g.i] : g.outcome);
+  $('#inspTitle').innerHTML = fmtRel(g.t - R.T0, 1) + ' s · <span style="color:' + c.plot + ';font-weight:700">' + esc(c.label) + '</span> · LG ' + f1(g.lg, 0) + ' · inl ' + f1(g.inl, 0) + (g.err !== null ? ' · error <b style="color:' + (g.err > 50 ? '#dc2626' : 'var(--ink)') + '">' + f1(g.err, 1) + ' m</b>' : '');
+  for (const b of $('#inspSrc').children){ b.classList.toggle('on', b.dataset.src === I.srcEff); b.disabled = b.dataset.src === 'atlas' && !hasFix; b.title = b.disabled ? 'this attempt made no fix, so atlas published no position' : b.dataset.src === 'atlas' && R.A.fix[g.i] < 0 ? 'a provisional lock: the candidate atlas chose, never published' : ''; }
+  for (const b of $('#inspView').children) b.classList.toggle('on', b.dataset.view === I.view);
+  $('#inspHdg').textContent = f1(g.hdg, 0) + '° ' + (I.rot ? '(atlas ' + f1(g.hdg_atlas, 0) + (I.rot > 0 ? ' + ' : ' − ') + Math.abs(I.rot) + ')' : hasFix ? '(atlas)' : "(atlas's rejected candidate)");
+  const at = g.pos === 'GPS truth' ? 'GPS truth' : 'the ' + g.pos;  // the atlas fix, or a provisional lock's candidate
+  paneLab('A', 'Frame from flight camera');  // public demo: plain titles, no pane letters
+  paneLab('B', '<b>B</b> ortho · north-up by heading ' + f1(g.hdg, 0) + '°, AGL ' + f1(g.agl, 0) + ' m · ' + f1(g.gA, 2) + ' m/px, the frame\'s own resolution');
+  paneLab('C', '<b>C</b> basemap at ' + at + ', in the camera\'s pixels' + (g.pos !== 'GPS truth' ? ' · what atlas matched against' : ''));
+  labD();
+  $('#inspFoot').textContent = 'A and B show the whole image; C (camera pixels) zooms and pans (double-click to refit); D is the tile map, north-up, zoomable to any distance. ' +
+    (g.ortho ? 'D carries the frame atlas actually matched' + (g.ortho_src === 'atlas' ? ' (its own ortho)' : ' (rebuilt from the record)') + ': rectified about the point under the aircraft, centred on ' + at + ', turned north-up by the heading, at the level\'s GSD x the fitted scale, at the slider\'s opacity (0 hides it); where it lines up with the map, the fit is right. '
+             : 'D carries B at the slider\'s opacity (0 hides it). ') +
+    'Centred on ' + at + '; B and C (and D without an ortho) treat the frame as nadir, so tilt shifts them by h·tan(tilt): ' + f1(g.agl * Math.tan((R.A.tilt[g.i] || 0) * Math.PI / 180), 0) + ' m on this frame.';
+}
+
+function labD(){
+  const g = I.geo; if (!g) return;
+  const at = g.pos === 'GPS truth' ? 'GPS truth' : 'the ' + g.pos;
+  const over = g.ortho ? 'atlas ortho' + (g.ortho_src === 'atlas' ? '' : ' (rebuilt)') + ' z' + g.ozoom + ' · scale ' + f1(g.oscale, 3) : 'camera frame B';
+  paneLab('D', 'Overlay of map accuracy');
+}
+
+function tintMask(m){ const c = document.createElement('canvas'); c.width = m.naturalWidth; c.height = m.naturalHeight; const x = c.getContext('2d'); x.drawImage(m, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), a = d.data; for (let k = 0; k < a.length; k += 4){ const on = a[k] > 127; a[k] = 255; a[k + 1] = 214; a[k + 2] = 10; a[k + 3] = on ? 70 : 0; } x.putImageData(d, 0, 0); return c; }
+
+function fitCol(col){
+  const g = I.geo; if (!g) return;
+  const cv = pEl('C'), cw = cv.clientWidth, ch = cv.clientHeight;
+  const s = Math.min(cw / g.fw, ch / g.fh); I.T.cam = {s, ox:(cw - g.fw * s) / 2, oy:(ch - g.fh * s) / 2};
+}
+function enG(E, N){ const g = I.geo; return G19(g.lat + N / g.ky, g.lon + E / g.kx); }
+function gEN(gx, gy){ const g = I.geo, [lat, lon] = LL(gx, gy); return [(lon - g.lon) * g.kx, (lat - g.lat) * g.ky]; }
+function footEN(){ const g = I.geo, h = g.hdg * Math.PI / 180, c = Math.cos(h), sn = Math.sin(h);
+  return [[0, 0], [g.W, 0], [g.W, g.H], [0, g.H]].map(([u, v]) => { const du = u - g.cx, dv = v - g.cy; return [g.s * (du * c - dv * sn), g.s * (-du * sn - dv * c)]; }); }
+function fitD(withErr){
+  const g = I.geo; if (!g || !I.mv) return;
+  const pts = dExtEN().concat(withErr ? [g.gps_en, g.fix_en].filter(Boolean) : []).map(([E, N]) => enG(E, N));
+  const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+  I.mv.fit(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), 24); I.mvFitted = true;
+}
+function dOverlay(ctx, W, H){
+  const g = I.geo; if (!g) return;
+  const P = (E, N) => { const q = enG(E, N); return I.mv.toS(q[0], q[1]); };
+  const k = footEN().map(([E, N]) => P(E, N));
+  const bim = I.img.B, oim = I.img.O;
+  if (oim && I.blend > 0){
+    const p0 = P(...oEN(0, 0)), p1 = P(...oEN(g.ow, g.oh));
+    ctx.save(); ctx.globalAlpha = I.blend; ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(oim, p0[0], p0[1], p1[0] - p0[0], p1[1] - p0[1]);
+    ctx.restore();
+  } else if (bim && I.blend > 0 && !g.ortho){
+    const p0 = P(...bEN(0, 0)), p1 = P(...bEN(g.bw, g.bh));
+    ctx.save(); ctx.beginPath(); k.forEach((q, j) => j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.clip();
+    ctx.globalAlpha = I.blend; ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(bim, p0[0], p0[1], p1[0] - p0[0], p1[1] - p0[1]);
+    ctx.restore();
+  }
+  if (!g.ortho){  // B's footprint treats the frame as nadir; with the ortho drawn it would only mislead
+    ctx.beginPath(); k.forEach((q, j) => j ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.stroke(); ctx.lineWidth = 1.4; ctx.strokeStyle = '#ffd60a'; ctx.stroke();
+  }
+  const a0 = P(0, 0), h = g.hdg * Math.PI / 180, L = Math.max(14, Math.min(W, H) * 0.1);
+  ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a0[0] + Math.sin(h) * L, a0[1] - Math.cos(h) * L); ctx.stroke();
+  const fq = g.fix_en && P(g.fix_en[0], g.fix_en[1]), gq = g.gps_en && P(g.gps_en[0], g.gps_en[1]);
+  if (fq && gq){ ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(fq[0], fq[1]); ctx.lineTo(gq[0], gq[1]); ctx.stroke(); }
+  const dot = (q, col, lab, left) => { if (!q) return; ctx.beginPath(); ctx.arc(q[0], q[1], 5, 0, 7); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1.3; ctx.strokeStyle = '#111'; ctx.stroke();
+    const x = left ? q[0] - 8 : q[0] + 8; ctx.font = '10.5px monospace'; ctx.textAlign = left ? 'right' : 'left'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(lab, x, q[1] + 3); ctx.fillStyle = '#fff'; ctx.fillText(lab, x, q[1] + 3); };
+  dot(gq, '#00e5ff', 'GPS', true); dot(fq, '#ffd60a', 'atlas', false);
+  if (gq && (gq[0] < 0 || gq[1] < 0 || gq[0] > W || gq[1] > H)){  // truth off screen: point at it
+    const dx = gq[0] - W / 2, dy = gq[1] - H / 2, a = Math.atan2(dy, dx), r = Math.min(W, H) / 2 - 22, x = W / 2 + Math.cos(a) * r, y = H / 2 + Math.sin(a) * r;
+    ctx.fillStyle = '#00e5ff'; ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * 10, y + Math.sin(a) * 10); ctx.lineTo(x + Math.cos(a + 2.5) * 8, y + Math.sin(a + 2.5) * 8); ctx.lineTo(x + Math.cos(a - 2.5) * 8, y + Math.sin(a - 2.5) * 8); ctx.fill();
+    ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; const lab = 'GPS ' + f1(Math.hypot(gq[0] - (fq || a0)[0], gq[1] - (fq || a0)[1]) * 156543.03392 * Math.cos(g.lat * Math.PI / 180) / Math.pow(2, I.mv.z) / 1000, 2) + ' km';
+    ctx.strokeText(lab, x - Math.cos(a) * 18, y - Math.sin(a) * 18 + 3); ctx.fillStyle = '#fff'; ctx.fillText(lab, x - Math.cos(a) * 18, y - Math.sin(a) * 18 + 3);
+  }
+  const mpp = 156543.03392 * Math.cos(g.lat * Math.PI / 180) / Math.pow(2, I.mv.z); let m = niceStep(mpp * 90, 1); if (m / mpp > 130) m /= 2; const Lb = m / mpp;
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(8, H - 26, Lb + 14, 19); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(15, H - 12); ctx.lineTo(15 + Lb, H - 12); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.fillText(m >= 1000 ? m / 1000 + ' km' : m + ' m', 15 + Lb / 2, H - 15);
+  if (I.hover){ const q = P(I.hover[0], I.hover[1]);
+    ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(q[0] - 12, q[1]); ctx.lineTo(q[0] + 12, q[1]); ctx.moveTo(q[0], q[1] - 12); ctx.lineTo(q[0], q[1] + 12); ctx.stroke();
+    ctx.strokeStyle = '#ff2d55'; ctx.lineWidth = 1.4; ctx.stroke(); }
+}
+function camEN(u, v){ const g = I.geo, k = g.fw / g.W, h = g.hdg * Math.PI / 180, c = Math.cos(h), sn = Math.sin(h), du = u / k - g.cx, dv = v / k - g.cy; return [g.s * (du * c - dv * sn), g.s * (-du * sn - dv * c)]; }
+function enCam(E, N){ const g = I.geo, k = g.fw / g.W, h = g.hdg * Math.PI / 180, c = Math.cos(h), sn = Math.sin(h); return [k * (g.cx + (E * c - N * sn) / g.s), k * (g.cy + (-E * sn - N * c) / g.s)]; }
+function bEN(x, y){ const g = I.geo; return [(x - g.bx0) * g.gA, -(y - g.by0) * g.gA]; }
+function oEN(x, y){ const g = I.geo; return [(x - g.ox0) * g.gO, -(y - g.oy0) * g.gO]; }
+function dExtEN(){ const g = I.geo; if (!g.ortho) return footEN(); const h = g.hdg * Math.PI / 180, c = Math.cos(h), sn = Math.sin(h);
+  return [[0, 0], [g.ow0, 0], [g.ow0, g.oh0], [0, g.oh0]].map(([u, v]) => { const du = u - g.ow0 / 2, dv = v - g.oh0 / 2; return [g.gO * (du * c - dv * sn), g.gO * (-du * sn - dv * c)]; }); }
+function enB(E, N){ const g = I.geo; return [g.bx0 + E / g.gA, g.by0 - N / g.gA]; }
+
+function drawInsp(){
+  if (!I.open) return;
+  drawFixed('A'); drawFixed('B'); drawC();
+  if (I.mv) I.mv.draw();
+}
+
+function drawC(){
+  const cv = pEl('C').querySelector('canvas'), ctx = cv.getContext('2d'), d = DPR(), W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * d) || cv.height !== Math.round(H * d)){ cv.width = Math.round(W * d); cv.height = Math.round(H * d); }
+  ctx.setTransform(d, 0, 0, d, 0, 0); ctx.fillStyle = '#1e2020'; ctx.fillRect(0, 0, W, H);
+  const g = I.geo, T = I.T.cam, im = I.img.C; if (!g || !T) return;
+  const P = (E, N) => { const q = enCam(E, N); return [T.ox + q[0] * T.s, T.oy + q[1] * T.s]; };
+  ctx.imageSmoothingQuality = 'high';
+  if (im) ctx.drawImage(im, T.ox, T.oy, im.naturalWidth * T.s, im.naturalHeight * T.s);
+  const mark = (en, col, lab, left) => { if (!en) return null; const q = P(en[0], en[1]); ctx.beginPath(); ctx.arc(q[0], q[1], 5, 0, 7); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1.3; ctx.strokeStyle = '#111'; ctx.stroke();
+    const x = left ? q[0] - 8 : q[0] + 8;
+    ctx.font = '10.5px monospace'; ctx.textAlign = left ? 'right' : 'left'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(lab, x, q[1] + 3); ctx.fillStyle = '#fff'; ctx.fillText(lab, x, q[1] + 3); return q; };
+  const fq = g.fix_en ? P(g.fix_en[0], g.fix_en[1]) : null, gq = g.gps_en ? P(g.gps_en[0], g.gps_en[1]) : null;
+  if (fq && gq){ ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(fq[0], fq[1]); ctx.lineTo(gq[0], gq[1]); ctx.stroke(); }
+  mark(g.gps_en, '#00e5ff', 'GPS', true); mark(g.fix_en, '#ffd60a', 'atlas', false);
+  if (I.hover){
+    const q = P(I.hover[0], I.hover[1]);
+    ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(q[0] - 12, q[1]); ctx.lineTo(q[0] + 12, q[1]); ctx.moveTo(q[0], q[1] - 12); ctx.lineTo(q[0], q[1] + 12); ctx.stroke();
+    ctx.strokeStyle = '#ff2d55'; ctx.lineWidth = 1.4; ctx.stroke();
+  }
+}
+
+function fixedT(p){
+  const g = I.geo, cv = pEl(p).querySelector('canvas'), W = p === 'A' ? g.fw : g.bw, H = p === 'A' ? g.fh : g.bh;
+  const s = Math.min(cv.clientWidth / W, cv.clientHeight / H);
+  return {s, ox:(cv.clientWidth - W * s) / 2, oy:(cv.clientHeight - H * s) / 2, W, H};
+}
+function drawFixed(p){
+  const g = I.geo, cv = pEl(p).querySelector('canvas'), ctx = cv.getContext('2d'), d = DPR(), im = I.img[p];
+  const CW = cv.clientWidth, CH = cv.clientHeight;
+  if (cv.width !== Math.round(CW * d) || cv.height !== Math.round(CH * d)){ cv.width = Math.round(CW * d); cv.height = Math.round(CH * d); }
+  ctx.setTransform(d, 0, 0, d, 0, 0); ctx.fillStyle = '#1e2020'; ctx.fillRect(0, 0, CW, CH);
+  if (!g || !im) return;
+  const T = fixedT(p), W = T.W, H = T.H;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(im, T.ox, T.oy, W * T.s, H * T.s);
+  if (p === 'A' && I.mask && I.maskImg) ctx.drawImage(I.maskImg, T.ox, T.oy, W * T.s, H * T.s);
+  const img = p === 'A' ? (E, N) => enCam(E, N) : (E, N) => enB(E, N);
+  const P = (E, N) => { const q = img(E, N); return [T.ox + q[0] * T.s, T.oy + q[1] * T.s]; };
+  const dot = (en, col, lab, left) => { if (!en) return; const q = P(en[0], en[1]); if (q[0] < -20 || q[1] < -20 || q[0] > CW + 20 || q[1] > CH + 20) return;
+    ctx.beginPath(); ctx.arc(q[0], q[1], 5, 0, 7); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 1.3; ctx.strokeStyle = '#111'; ctx.stroke();
+    const x = left ? q[0] - 8 : q[0] + 8; ctx.font = '10.5px monospace'; ctx.textAlign = left ? 'right' : 'left'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(lab, x, q[1] + 3); ctx.fillStyle = '#fff'; ctx.fillText(lab, x, q[1] + 3); };
+  if (p === 'B'){
+    const k = footEN().map(([E, N]) => P(E, N));
+    ctx.beginPath(); k.forEach((q, j2) => j2 ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffd60a'; ctx.stroke();
+    const a0 = P(0, 0), h = g.hdg * Math.PI / 180, L = Math.min(W, H) * T.s * 0.12;
+    ctx.strokeStyle = '#ffd60a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a0[0] + Math.sin(h) * L, a0[1] - Math.cos(h) * L); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(a0[0] - 7, a0[1]); ctx.lineTo(a0[0] + 7, a0[1]); ctx.moveTo(a0[0], a0[1] - 7); ctx.lineTo(a0[0], a0[1] + 7); ctx.stroke();
+    const mpp = g.gA / T.s; let m = niceStep(mpp * 90, 1); if (m / mpp > 130) m /= 2; const Lb = m / mpp;
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(8, CH - 26, Lb + 14, 19); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(15, CH - 12); ctx.lineTo(15 + Lb, CH - 12); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.font = '10px monospace'; ctx.textAlign = 'center'; ctx.fillText(m + ' m', 15 + Lb / 2, CH - 15);
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(CW - 24, CH - 30, 16, 22); ctx.fillStyle = '#fff'; ctx.fillText('N', CW - 16, CH - 13); ctx.beginPath(); ctx.moveTo(CW - 16, CH - 28); ctx.lineTo(CW - 20, CH - 22); ctx.lineTo(CW - 12, CH - 22); ctx.fill();
+  } else { dot(g.gps_en, '#00e5ff', 'GPS', true); dot(g.fix_en, '#ffd60a', 'atlas', false); }
+  if (I.hover){
+    const q = P(I.hover[0], I.hover[1]);
+    ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(q[0] - 12, q[1]); ctx.lineTo(q[0] + 12, q[1]); ctx.moveTo(q[0], q[1] - 12); ctx.lineTo(q[0], q[1] + 12); ctx.stroke();
+    ctx.strokeStyle = '#ff2d55'; ctx.lineWidth = 1.4; ctx.stroke();
+  }
+}
+
+function inspEvents(){
+  for (const p of ['A', 'B']){  // fixed panes: hover only
+    const cv = pEl(p).querySelector('canvas');
+    cv.addEventListener('mousemove', e => { if (!I.geo || !I.img[p]) return; const r = cv.getBoundingClientRect(), T = fixedT(p), x = (e.clientX - r.left - T.ox) / T.s, y = (e.clientY - r.top - T.oy) / T.s;
+      I.hover = p === 'A' ? camEN(x, y) : bEN(x, y); drawInsp(); });
+    cv.addEventListener('mouseleave', () => { I.hover = null; drawInsp(); });
+  }
+  I.mv = new MapView(pEl('D').querySelector('canvas'));
+  I.mv.onOverlay = dOverlay;
+  I.mv.onHover = (sx, sy) => { if (!I.geo) return; const [gx, gy] = I.mv.toG(sx, sy); I.hover = gEN(gx, gy); drawInsp(); };
+  I.mv.onLeave = () => { I.hover = null; drawInsp(); };
+  $('#dFoot').addEventListener('click', () => fitD(false));
+  $('#dErr').addEventListener('click', () => fitD(true));
+  for (const p of ['C']){
+    const cv = pEl(p).querySelector('canvas'), col = COL[p]; let drag = null;
+    const toImg = (e) => { const r = cv.getBoundingClientRect(), T = I.T[col]; return [(e.clientX - r.left - T.ox) / T.s, (e.clientY - r.top - T.oy) / T.s, e.clientX - r.left, e.clientY - r.top]; };
+    cv.addEventListener('wheel', e => { e.preventDefault(); const T = I.T[col]; if (!T) return; const [, , mx, my] = toImg(e), f = Math.pow(1.0017, -e.deltaY);
+      T.ox = mx - (mx - T.ox) * f; T.oy = my - (my - T.oy) * f; T.s *= f; drawInsp(); }, {passive:false});
+    cv.addEventListener('mousedown', e => { if (I.T[col]) drag = {x:e.clientX, y:e.clientY, ox:I.T[col].ox, oy:I.T[col].oy}; });
+    window.addEventListener('mousemove', e => {
+      if (drag){ const T = I.T[col]; T.ox = drag.ox + e.clientX - drag.x; T.oy = drag.oy + e.clientY - drag.y; drawInsp(); return; }
+      if (e.target !== cv || !I.geo || !I.T[col]) return;
+      const [u, v] = toImg(e); I.hover = camEN(u, v); drawInsp();
+    });
+    window.addEventListener('mouseup', () => { drag = null; });
+    cv.addEventListener('mouseleave', () => { I.hover = null; drawInsp(); });
+    cv.addEventListener('dblclick', () => { fitCol(col); drawInsp(); });
+  }
+  $('#inspClose').addEventListener('click', closeInspector);
+  $('#inspPrev').addEventListener('click', () => jump(S.R.A.t, -1));
+  $('#inspNext').addEventListener('click', () => jump(S.R.A.t, 1));
+  $('#inspSrc').addEventListener('click', e => { const b = e.target.closest('[data-src]'); if (!b || b.disabled) return; I.src = b.dataset.src; loadInspect(I.i, false); });
+  $('#inspView').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (!b) return; I.view = b.dataset.view; loadInspect(I.i, false); });
+  let rt = null;
+  $('#inspRot').addEventListener('input', e => { I.rot = +e.target.value; clearTimeout(rt); rt = setTimeout(() => loadInspect(I.i, false), 120); });
+  $('#inspStretch').addEventListener('change', e => { I.stretch = e.target.checked; loadInspect(I.i, false); });
+  $('#inspBlend').addEventListener('input', e => { I.blend = +e.target.value / 100; $('#inspBlendV').textContent = e.target.value + '%'; labD(); if (I.mv) I.mv.draw(); });
+  $('#inspMask').addEventListener('change', e => { I.mask = e.target.checked; drawInsp(); });
+  new ResizeObserver(() => { if (!I.open) return; sizeInsp(); if (I.geo){ fitCol('cam'); drawInsp(); } }).observe($('#lower'));
+}
+function inspFollow(){
+  if (!I.open || !S.R) return;
+  const i = lb(S.R.A.t, S.t + 1e-6) - 1;
+  if (i >= 0 && i !== I.i){ clearTimeout(I.timer); I.timer = setTimeout(() => { I.rot = 0; $('#inspRot').value = 0; I.src = hasAtlas(S.R, i) ? 'atlas' : 'gps'; loadInspect(i, false); }, S.playing ? 400 : 100); }
+}
+function hasAtlas(R, i){ return R.A.fix[i] >= 0 || !!provOf(R, i); }
+function attemptIndexOfFix(R, fi){ const k = lb(R.A.t, R.Fx.t[fi] - 5e-4); return k < R.A.n && Math.abs(R.A.t[k] - R.Fx.t[fi]) < 1e-3 ? k : -1; }
+
+async function getRun(name){ const r = await fetch('/api/run/' + encodeURIComponent(name)); const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); return prep(j); }
+async function loadRun(name, keepT){
+  window.RUN = name;                       // the VIO pages load lazily off this
+  const bc = document.body.classList;
+  vioLoad(name).then(() => vioFromAtlas());  // public demo: the 3-D view is on this page
+  $('#figs').innerHTML = '<div class="empty">loading ' + esc(name) + '…</div>';
+  try { S.R = await getRun(name); } catch (e){ $('#figs').innerHTML = '<div class="empty">could not load ' + esc(name) + ': ' + esc(e.message) + '</div>'; return; }
+  const R = S.R; S.v0 = R.T0; S.v1 = R.T1; I.i = -1; I.geo = null; I.img = {}; I.mvFitted = false;
+  const cmpName = $('#cmpSel').value; S.C = null;
+  if (cmpName && cmpName !== name){ try { S.C = await getRun(cmpName); } catch (e) { S.C = null; } }
+  $('#scrub').max = R.T1 - R.T0;
+  const info = S.runs.find(r => r.name === name) || {};
+  $('#pairBtn').hidden = !info.pair || cmpName === info.pair; if (info.pair) $('#pairBtn').textContent = '⇄ compare with ' + (info.kind === 'flight' ? 'its replay' : 'the flight');
+  const s = R.j.summary;
+  let chips = '<span class="chip kind-' + R.kind + '">' + (R.kind === 'bagplay' ? 'BAGPLAY REPLAY' : R.kind === 'fuse' ? 'FUSE_PLAY RUN' : R.kind === 'iris' ? 'IRIS_PLAY RUN' : 'FLIGHT') + '</span>' +
+    '<span class="chip"><b>' + s.fixes + '</b> fixes</span>' +
+    '<span class="chip">median <b>' + f1(s.med, 2) + ' m</b> · max <b>' + f1(s.max, 0) + ' m</b></span>';
+  if (R.j.replay){ const p = R.j.replay; chips += '<span class="chip">atlas <b>' + esc(p.commit || '?') + '</b>' + (p.dirty ? ' +' + p.dirty + ' dirty' : '') + ' · rate ' + esc(p.rate) + ' · GPU ' + esc(p.gpu_mhz) + ' MHz</span>'; }
+  $('#runChips').innerHTML = chips;
+  buildOutcomes();
+  if (R.g.t.length){ let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (let i = 0; i < R.g.t.length; i++){ x0 = Math.min(x0, R.g.gx[i]); x1 = Math.max(x1, R.g.gx[i]); y0 = Math.min(y0, R.g.gy[i]); y1 = Math.max(y1, R.g.gy[i]); } S.fitBox = [x0, y0, x1, y1]; MV.fit(x0, y0, x1, y1); S.refit = !MV.cv.clientWidth; }
+  const q = new URLSearchParams(location.search), qt = parseFloat(q.get('t'));
+  setT(keepT !== undefined ? keepT : !isNaN(qt) && q.get('run') === name ? R.T0 + qt : (R.Fx.n ? R.Fx.t[0] : R.A.n ? R.A.t[0] : R.T0));
+  if (R.A.n) openInspector(Math.max(0, lb(R.A.t, S.t + 1e-6) - 1));
+  if (S.fitBox) requestAnimationFrame(() => { MV.fit(...S.fitBox); S.refit = !MV.cv.clientWidth; });  // the map lives in the inspector: fit it once that is shown
+}
+let urlTimer = null;
+function urlSoon(){ clearTimeout(urlTimer); urlTimer = setTimeout(() => { if (!S.R) return; const q = new URLSearchParams({run:S.R.name, t:(S.t - S.R.T0).toFixed(1)}); if (S.C) q.set('cmp', S.C.name);
+  const tab = document.querySelector('.tab.on'); if (tab && tab.dataset.tab !== 'atlas') q.set('tab', tab.dataset.tab);   // a reload stays on its page
+  history.replaceState(null, '', '?' + q); }, 400); }
+function jump(list, dir){ if (!list.length) return; const i = lb(list, S.t + (dir > 0 ? 1e-3 : -1e-3)); const k = dir > 0 ? i : i - 1; if (k >= 0 && k < list.length) setT(list[k]); }
+let last = 0;
+function tick(ts){
+  if (!S.playing){ last = 0; return; }
+  if (last){ const dt = (ts - last) / 1000 * S.speed; if (S.t + dt >= S.R.T1){ setT(S.R.T1); togglePlay(false); return; } setT(S.t + dt); }
+  last = ts; requestAnimationFrame(tick);
+}
+function togglePlay(on){ S.playing = on === undefined ? !S.playing : on; $('#play').textContent = S.playing ? '❚❚' : '▶'; if (S.playing) requestAnimationFrame(tick); try { vioVidFollow(V.t); } catch (e){} }
+async function pollTiles(){
+  try { S.tiles = await (await fetch('/api/tiles')).json(); } catch (e){ return setTimeout(pollTiles, 5000); }
+  const t = S.tiles, ch = $('#tileChip');
+  const ncr = t.ncr ? ' · whole NCR beyond it, z' + t.ncr.zmin + '–' + t.ncr.zmax : '';
+  ch.title = t.ncr ? 'Outside the 6 km basemap the map shows the whole-NCR imagery from z' + t.ncr.zmin + ' in; zoomed out further it is blank there.' : '';
+  if (t.state === 'ready'){ ch.textContent = 'map tiles ready · z' + t.zmin + '–' + t.zmax + ncr; drawMap(); return; }
+  ch.textContent = 'map tiles: ' + t.state + (t.total ? ' ' + Math.round(100 * t.done / t.total) + '%' : '') + ncr;
+  if (t.ncr) drawMap();
+  setTimeout(pollTiles, 3000);
+}
+
+async function init(){
+  MV = new MapView($('#map')); MV.onOverlay = overlay; MV.onHover = mapHover; MV.onClick = mapClick;
+  $('#speed').innerHTML = [1, 5, 10].map(v => '<button data-sp="' + v + '"' + (v === S.speed ? ' class="on"' : '') + '>' + v + '×</button>').join('');
+  pollTiles();
+  const L = await (await fetch('/api/runs')).json(); S.runs = L.runs;
+  const opt = r => '<option value="' + esc(r.name) + '">' + esc(r.name.replace(/^flight_(\d+)$/, 'Flight $1')) + '</option>';
+  const grp = (lab, rs) => rs.length ? '<optgroup label="' + lab + '">' + rs.map(opt).join('') + '</optgroup>' : '';
+  const fl = S.runs.filter(r => r.kind === 'flight'), bp = S.runs.filter(r => r.kind === 'bagplay'), fu = S.runs.filter(r => r.kind === 'fuse' || r.kind === 'iris');
+  $('#runSel').innerHTML = grp('flight reports', fl) + grp('bagplay replays', bp) + grp('fuse_play / iris_play runs', fu);
+  $('#cmpSel').innerHTML = '<option value="">none</option>' + grp('flight reports', fl) + grp('bagplay replays', bp) + grp('fuse_play / iris_play runs', fu);
+  if (L.skipped.length) $('#skipped').innerHTML = 'not shown: ' + L.skipped.map(s => esc(s.name) + ' (' + esc(s.why) + ')').join('; ');
+  if (!S.runs.length){ $('#figs').innerHTML = '<div class="empty">no flight_*, bagplay_flight_*, fuse_flight_* or iris_flight_* folders in the runs directory</div>'; return; }
+  const q = new URLSearchParams(location.search);
+  const pick = q.get('run') && S.runs.some(r => r.name === q.get('run')) ? q.get('run') : (bp.length ? bp[bp.length - 1] : fl[fl.length - 1]).name;
+  $('#runSel').value = pick; if (q.get('cmp')) $('#cmpSel').value = q.get('cmp');
+  await loadRun(pick);
+  const tb = [].includes(q.get('tab')) && document.querySelector('.tab[data-tab="' + q.get('tab') + '"]');
+  if (tb) tb.click();
+}
+
+$('#runSel').addEventListener('change', e => { $('#cmpSel').value = ''; loadRun(e.target.value); });
+$('#cmpSel').addEventListener('change', () => loadRun(S.R.name, S.t));
+$('#pairBtn').addEventListener('click', () => { const info = S.runs.find(r => r.name === S.R.name); if (info && info.pair){ $('#cmpSel').value = info.pair; loadRun(S.R.name, S.t); } });
+$('#left').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.layer){ S.layers[t.dataset.layer] = t.checked; t.closest('.row').classList.toggle('on', t.checked); if (t.dataset.layer === 'cmp'){ buildFigs(); buildOutcomes(); } if (t.dataset.layer === 'follow' && t.checked) setT(S.t); drawMap(); }
+  if (t.dataset.sig){ if (t.checked) S.sel.add(t.dataset.sig); else S.sel.delete(t.dataset.sig); t.closest('.row').classList.toggle('on', t.checked); saveSel(); buildFigs(); }
+});
+$('#outList').addEventListener('click', e => { const r = e.target.closest('[data-out]'); if (!r) return; const o = r.dataset.out; if (S.hidden.has(o)) S.hidden.delete(o); else S.hidden.add(o); buildOutcomes(); drawFigs(); drawMap(); });
+$('#readout').addEventListener('click', e => {
+  const ib = e.target.closest('[data-inspect]'); if (ib){ openInspector(+ib.dataset.inspect); return; }
+  const th = e.target.closest('.thumb'); if (th){ const lbx = $('#lightbox'); lbx.querySelector('img').src = th.dataset.src; lbx.style.display = 'flex'; return; }
+  const d = e.target.closest('[data-t]'); if (d) setT(parseFloat(d.dataset.t));
+});
+$('#lightbox').addEventListener('click', () => { $('#lightbox').style.display = 'none'; });
+$('#scrub').addEventListener('input', e => setT(S.R.T0 + parseFloat(e.target.value), 'scrub'));
+$('#play').addEventListener('click', () => togglePlay());
+$('#speed').addEventListener('click', e => { const b = e.target.closest('[data-sp]'); if (!b) return; S.speed = +b.dataset.sp; for (const x of $('#speed').children) x.classList.toggle('on', x === b); try { vioVidFollow(V.t); } catch (e2){} });
+$('#prevFail').addEventListener('click', () => jump(S.R.fails, -1));
+$('#nextFail').addEventListener('click', () => jump(S.R.fails, 1));
+$('#prevAtt').addEventListener('click', () => jump(S.R.A.t, -1));
+$('#nextAtt').addEventListener('click', () => jump(S.R.A.t, 1));
+$('#fitFlight').addEventListener('click', () => { if (S.fitBox) MV.fit(...S.fitBox); });
+$('#fitAll').addEventListener('click', () => {
+  const R = S.R; if (!R) return; let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  const add = (x, y) => { if (isNaN(x) || isNaN(y)) return; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); };
+  for (let i = 0; i < R.g.t.length; i++) add(R.g.gx[i], R.g.gy[i]);
+  for (let i = 0; i < R.Fx.n; i++) add(R.Fx.gx[i], R.Fx.gy[i]);
+  for (const P of R.P) add(P.gx, P.gy);
+  if (isFinite(x0)) MV.fit(x0, y0, x1, y1);
+});
+$('#fitMap').addEventListener('click', () => { if (!S.tiles) return; const b = S.tiles.bounds, p = G19(b.n, b.w), q = G19(b.s, b.e); MV.fit(p[0], p[1], q[0], q[1], 10); });
+$('#centerNow').addEventListener('click', () => { const g = S.R.g; if (!g.t.length) return; MV.cx = interp(g.t, g.gx, S.t); MV.cy = interp(g.t, g.gy, S.t); if (MV.z < 17) MV.z = 17.5; drawMap(); });
+window.addEventListener('keydown', e => {
+  if (!S.R || e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (e.key === 'Escape' && I.open) return;   // public demo: the inspector is the tab, it never closes
+  if (e.key === ' '){ e.preventDefault(); togglePlay(); }
+  else if (e.key === 'ArrowRight'){ e.preventDefault(); jump(e.shiftKey ? S.R.fails : S.R.A.t, 1); }
+  else if (e.key === 'ArrowLeft'){ e.preventDefault(); jump(e.shiftKey ? S.R.fails : S.R.A.t, -1); }
+});
+(() => {  // map / figures splitter
+  const sp = $('#hsplit'), mp = $('#mapPane'); let y0 = null, h0 = 0;
+  sp.addEventListener('mousedown', e => { y0 = e.clientY; h0 = mp.getBoundingClientRect().height; e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (y0 === null) return; mp.style.flexBasis = Math.max(160, Math.min(innerHeight - 260, h0 + e.clientY - y0)) + 'px'; drawMap(); drawFigs(); });
+  window.addEventListener('mouseup', () => { y0 = null; });
+  new ResizeObserver(() => drawFigs()).observe($('#figs'));
+})();
+$('#igrid').appendChild($('#mapPane'));  // public demo: the flight map sits in the inspector, under A
+(() => {  // public demo: one page -- the 3-D trajectory and its card in a row under the inspector
+  const row = document.createElement('div'); row.className = 'resrow'; row.id = 'resRow';
+  row.append($('#vioSmallPane'), $('#vioLive')); $('#insp').after(row);
+  new ResizeObserver(() => vioDrawAll()).observe($('#vioSmallPane'));
+})();
+inspEvents();
+document.addEventListener('visibilitychange', () => { if (!document.hidden){ MV.pending = false; figPending = false; drawMap(); drawFigs(); } });
+init();
+
+const V = {data:null, sel:new Map(), figs:[{ids:[]}], active:0, t:0, run:null, over:true, liveOpen:new Set()};
+
+function vioFmt(x, u){
+  if (x === null || x === undefined || !isFinite(x)) return '--';
+  const a = Math.abs(x);
+  const s = a >= 1000 ? x.toFixed(0) : a >= 10 ? x.toFixed(1) : a >= 0.1 ? x.toFixed(3) : x.toExponential(1);
+  return u && u !== '-' ? s + ' ' + u : s;
+}
+
+async function vioLoad(run){
+  if (!run) return Promise.resolve();
+  const keepSel = new Map(V.sel), keepFigs = V.figs.map(f => ({ids: f.ids.slice()}));
+  const keepStyle = Object.assign({}, V.style), first = V.run === null;
+  V.run = run;
+  V.sel = new Map(); V.figs = first ? [{ids:[]}] : keepFigs; V.active = Math.min(V.active, V.figs.length - 1);
+  V.series = {};                       // id -> {t, y}, fetched only when plotted
+  const big = document.getElementById('vioVidBig');
+  V.data = {loading: true}; V.traj = null; V.trajErr = 'reading this run\u2026';
+  try { vioSigList(); vioStats(); vioDraw3d(); } catch (e){}
+  try {
+    const r = await fetch('/api/vio/' + encodeURIComponent(run));
+    V.data = await r.json();
+  } catch (e){
+    V.data = {error: 'catalogue: ' + e.message};
+  }
+  const vt = document.getElementById('vidTopic');
+  if (vt) vt.textContent = 'track history \u00b7 ' + ((V.data && V.data.trackhist_topic) || 'track history');
+  if (!first && V.data && V.data.signals){
+    const have = V.data.signals, dropped = [];
+    V.style = {};
+    keepSel.forEach((col, id) => {
+      if (have[id]){ V.sel.set(id, col); if (keepStyle[id]) V.style[id] = keepStyle[id]; }
+      else dropped.push(id);
+    });
+    V.figs.forEach(f => { f.ids = f.ids.filter(id => have[id]); });
+    V.dropped = dropped;
+    const ids = [].concat.apply([], V.figs.map(f => f.ids));
+    if (ids.length) { try { await vioFetch(ids); } catch (e){ console.error('vioFetch', e); } }
+  }
+  try { vioSigList(); } catch (e){ console.error('vioSigList', e); }
+  try { vioStats(); } catch (e){ console.error('vioStats', e); }
+  try { vioDrawAll(); } catch (e){ console.error('vioDrawAll', e); }
+  vioLoadTraj().catch(e => console.error('vioLoadTraj', e));
+}
+
+function vioSigList(){
+  const el = document.getElementById('vioSigList');
+  if (V.data && V.data.loading){ el.innerHTML = '<div class="hint">building the signal catalogue for this run\u2026<br>first open of a flight only</div>'; return; }
+  if (!V.data || V.data.error || !V.data.groups){ el.innerHTML = '<div class="hint">' + ((V.data&&V.data.error)||'no VIO data') + '</div>'; return; }
+  let h = '';
+  for (const g of V.data.groups){
+    h += '<div class="vgrp">' + g.name + '</div>';
+    for (const id of g.ids){
+      const s = V.data.signals[id], on = V.sel.has(id);
+      const col = on ? sigStyle(id).color : s.color;
+      h += '<label class="vrow" data-id="' + id + '">'
+         + '<input type="checkbox"' + (on ? ' checked' : '') + '>'
+         + '<span class="sw" style="background:' + col + '" title="click to change colour"></span>'
+         + '<span class="nm">' + s.name + '</span>'
+         + '<span class="un">' + (s.unit || '') + '</span>'
+         + (on ? '<span class="fg">f' + (vioFigOf(id) + 1) + '</span>' : '')
+         + '</label>';
+    }
+  }
+  el.innerHTML = h;
+  const c = document.getElementById('vioCount');
+  if (c) c.textContent = V.sel.size + ' on'
+       + (V.dropped && V.dropped.length ? '  \u00b7 ' + V.dropped.length + ' not in this run' : '');
+  el.querySelectorAll('.vrow').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('input').onchange = e => { e.stopPropagation(); vioToggle(id, e.target.checked); };
+    row.querySelector('.sw').onclick = e => {
+      e.preventDefault(); e.stopPropagation();
+      vioStylePop(id, row.querySelector('.sw'));
+    };
+  });
+}
+
+function vioStylePop(id, anchor){
+  const p = document.getElementById('vioStylePop'), st = sigStyle(id);
+  const meta = V.data.signals[id];
+  p.innerHTML =
+    '<div class="t">' + meta.name + '</div>'
+    + '<div class="lb">COLOUR</div><div class="sw6">'
+    + SIG_SWATCHES.map(c => '<button data-c="' + c + '" style="background:' + c + '"></button>').join('')
+    + '</div><div class="rowf"><input type="color" id="vspCol" value="' + st.color + '">'
+    + '<span style="color:var(--dim)">custom</span></div>'
+    + '<div class="lb">LINE</div><div class="seg" id="vspDash">'
+    + Object.keys(SIG_DASH).map(k => '<button data-k="' + k + '" class="' + (st.dash === k ? 'on' : '') + '">' + k + '</button>').join('')
+    + '</div><div class="lb">WIDTH <span id="vspWv">' + st.width.toFixed(1) + '</span></div>'
+    + '<div class="rowf"><input type="range" id="vspW" min="0.5" max="5" step="0.5" value="' + st.width + '"></div>'
+    + '<div class="lb">MARKER</div><div class="seg" id="vspMark">'
+    + SIG_MARK.map(k => '<button data-k="' + k + '" class="' + (st.mark === k ? 'on' : '') + '">' + k + '</button>').join('')
+    + '</div><div class="foot"><button id="vspReset">reset</button><button id="vspClose">close</button></div>';
+  const r = anchor.getBoundingClientRect();
+  p.style.display = 'block';
+  p.style.left = Math.min(window.innerWidth - 236, r.right + 6) + 'px';
+  p.style.top = Math.min(window.innerHeight - 300, r.top) + 'px';
+  const set = o => { V.style[id] = Object.assign({}, V.style[id] || {}, o);
+                     if (o.color) V.sel.set(id, o.color);
+                     vioSigList(); vioDrawAll(); vioStylePop(id, anchor); };
+  p.querySelectorAll('.sw6 button').forEach(b => b.onclick = () => set({color: b.dataset.c}));
+  p.querySelector('#vspCol').oninput = e => set({color: e.target.value});
+  p.querySelectorAll('#vspDash button').forEach(b => b.onclick = () => set({dash: b.dataset.k}));
+  p.querySelectorAll('#vspMark button').forEach(b => b.onclick = () => set({mark: b.dataset.k}));
+  p.querySelector('#vspW').oninput = e => set({width: parseFloat(e.target.value)});
+  p.querySelector('#vspReset').onclick = () => { delete V.style[id];
+    V.sel.set(id, V.data.signals[id].color); vioSigList(); vioDrawAll(); p.style.display = 'none'; };
+  p.querySelector('#vspClose').onclick = () => { p.style.display = 'none'; };
+}
+document.addEventListener('mousedown', e => {
+  const p = document.getElementById('vioStylePop');
+  if (p && p.style.display === 'block' && !p.contains(e.target) && !e.target.classList.contains('sw'))
+    p.style.display = 'none';
+});
+
+function vioFigOf(id){ for (let i = 0; i < V.figs.length; i++) if (V.figs[i].ids.includes(id)) return i; return 0; }
+
+async function vioFetch(ids){
+  const need = ids.filter(id => !V.series[id]);
+  if (!need.length) return;
+  const r = await fetch('/api/vio/' + encodeURIComponent(V.run) + '/series?ids=' + need.map(encodeURIComponent).join(','));
+  Object.assign(V.series, await r.json());
+}
+
+async function vioToggle(id, on){
+  if (on){ V.sel.set(id, V.data.signals[id].color); V.figs[V.active].ids.push(id); }
+  else { V.sel.delete(id); V.figs.forEach(f => { const k = f.ids.indexOf(id); if (k >= 0) f.ids.splice(k, 1); }); }
+  vioSigList();
+  if (on){ await vioFetch([id]); }
+  vioDrawAll();
+}
+
+const VIO_STAT_SPEC = [
+  ['imu_num_detected__detected',       'features detected'],
+  ['imu_num_matched_klt__matched_KLT', 'matched KLT'],
+  ['imu_num_chi2pass__chi2_pass',      'chi2 pass'],
+  ['num_slam_active__SLAM_active',     'SLAM active'],
+  ['ransac_inliers__RANSAC_inliers',   'RANSAC inliers'],
+  ['time_total__total',                'frame time'],
+  ['rangefinder_range__range',         'rangefinder'],
+  ['fcu_gpsraw_h_acc__h_acc',          'GPS h_acc'],
+  ['flux_feats_detected__feats_detected', 'features detected'],
+  ['flux_feats_tracked__feats_tracked',   'tracked'],
+  ['flux_feats_msckf__feats_msckf',       'MSCKF used'],
+  ['flux_slam_active__slam_active',       'SLAM active'],
+  ['flux_total_ms__total_ms',             'frame time'],
+  ['flux_filter_starts__filter_starts',   'filter starts'],
+];
+
+function vioStats(){
+  const el = document.getElementById('vioStats');
+  if (!el) return;
+  V.statCards = null;
+  if (!V.data || V.data.error || !V.data.signals){ el.innerHTML = ''; return; }
+  const S = V.data.signals;
+  const live = VIO_STAT_SPEC.filter(([id]) => S[id] && S[id].med !== null);
+  let h = '';
+  for (const [id, lab] of live){
+    const s = S[id];
+    h += '<div class="vstat" data-sid="' + id + '"><div class="k">' + lab + '</div>'
+       + '<div class="v">\u2026</div><canvas class="sp"></canvas>'
+       + '<div class="s">med ' + vioFmt(s.med) + ' · min ' + vioFmt(s.lo)
+       + ' · max ' + vioFmt(s.hi) + ' · n ' + s.n + '</div></div>';
+  }
+  if (V.data.gt_source) h += '<div class="vstat"><div class="k">ground truth</div><div class="v" style="font-size:12px">'
+                           + V.data.gt_source + '</div></div>';
+  if (V.data.video_n){
+    const m = V.data.video_mp4_n, bad = m != null && Math.abs(m - V.data.video_n) > 2;
+    h += '<div class="vstat" style="' + (bad ? 'border-color:#eb6834' : '') + '"><div class="k">trackhist'
+       + (bad ? ' \u2014 VIDEO IS SHORT' : '') + '</div><div class="v">' + V.data.video_n
+       + '</div><div class="s">' + (bad ? 'frames published, but the mp4 holds only ' + m
+          + ' \u2014 re-run flight_report' : 'frames') + '</div></div>'; }
+  el.innerHTML = h || '<div class="hint">no VIO signals — re-run flight_report on this bag</div>';
+  V.statCards = live.map(([id, lab]) => {
+    const box = el.querySelector('.vstat[data-sid="' + id + '"]');
+    return {id, lab, box, val: box.querySelector('.v'), cv: box.querySelector('canvas'), spark: null};
+  });
+  const need = live.map(([id]) => id).filter(id => !V.series[id]);
+  if (need.length) vioFetch(need).then(vioDrawAll).catch(e => console.error('stat series', e));
+  vioStatsDraw();
+}
+
+function vioSparkBuild(c){
+  const d = V.series[c.id], cv = c.cv, w = cv.clientWidth, h = cv.clientHeight;
+  if (!d || !d.t || d.t.length < 2 || !w || !h) return null;
+  const n = d.t.length, span = Math.max(1e-9, d.t[n - 1] - d.t[0]);
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < n; i++){ const y = d.y[i];
+    if (y === null || !isFinite(y)) continue;
+    if (y < lo) lo = y; if (y > hi) hi = y; }
+  if (!isFinite(lo)) return null;
+  if (hi - lo < 1e-9){ hi = lo + 1; lo -= 1; }          // a flat signal still gets a line
+  const pad = 3, H = Math.max(1, h - 2 * pad);
+  const px = new Float32Array(n), py = new Float32Array(n);
+  for (let i = 0; i < n; i++){
+    px[i] = (d.t[i] - d.t[0]) / span * w;
+    const y = d.y[i];
+    py[i] = (y === null || !isFinite(y)) ? NaN : pad + H * (1 - (y - lo) / (hi - lo));
+  }
+  return {w, h, px, py, t: d.t, y: d.y, lo, hi, src: d};
+}
+
+function vioStatsDraw(){
+  if (!V.statCards || !V.data || !V.data.signals) return;
+  const css = getComputedStyle(document.body);
+  const AHEAD = (css.getPropertyValue('--edge') || '#dde3ec').trim();
+  for (const c of V.statCards){
+    const cv = c.cv, w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) continue;                              // this page is not the one showing
+    const s = V.data.signals[c.id], d = V.series[c.id];
+    if (!d){ c.val.textContent = '\u2026'; continue; }    // samples still on their way
+    if (!c.spark || c.spark.src !== d || c.spark.w !== w || c.spark.h !== h){
+      vioFit(cv);
+      c.spark = vioSparkBuild(c);
+    }
+    const sp = c.spark;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, w, h);
+    if (!sp){ c.val.textContent = '--'; continue; }
+    const k = vioNearest(sp.t, V.t);
+    const run = (a, b, col, lw) => {
+      g.strokeStyle = col; g.lineWidth = lw; g.beginPath();
+      let pen = false;
+      for (let i = a; i <= b; i++){
+        if (isNaN(sp.py[i])){ pen = false; continue; }   // a gap in the signal stays a gap
+        if (pen) g.lineTo(sp.px[i], sp.py[i]); else { g.moveTo(sp.px[i], sp.py[i]); pen = true; }
+      }
+      g.stroke();
+    };
+    run(k, sp.t.length - 1, AHEAD, 1);                   // not reached yet
+    run(0, k, s.color, 1.4);                             // already flown
+    if (!isNaN(sp.py[k])){
+      g.fillStyle = s.color;
+      g.beginPath(); g.arc(sp.px[k], sp.py[k], 2.4, 0, 6.2832); g.fill();
+    }
+    const y = sp.y[k];
+    c.val.textContent = (y === null || y === undefined) ? '--' : vioFmt(y, s.unit);
+  }
+}
+
+function vioNearest(t, x){
+  let lo = 0, hi = t.length - 1;
+  if (x <= t[0]) return 0;
+  if (x >= t[hi]) return hi;
+  while (hi - lo > 1){ const m = (lo + hi) >> 1; if (t[m] <= x) lo = m; else hi = m; }
+  return (x - t[lo] <= t[hi] - x) ? lo : hi;
+}
+
+const SIG_DASH = {solid:[], dashed:[7,4], dotted:[2,3], dashdot:[8,3,2,3], longdash:[13,5], dashdotdot:[8,3,2,3,2,3]};
+const SIG_MARK = ['none','dot','box','cross'];
+const SIG_SWATCHES = ['#0a84c2','#2563eb','#7c3aed','#be185d','#dc2626','#c2410c','#c2740a','#a16207',
+                      '#15803d','#059669','#0f766e','#4f46e5','#334155','#8592a5','#be123c','#0369a1'];
+V.style = {}; V.fzoom = {}; V.fband = {}; V.marks = []; V.cur = null; V.hover = null; V.measure = false;
+
+function sigDefaults(id){
+  const s = (V.data && V.data.signals[id]) || {};
+  return {color: s.color || '#0a84c2', dash: 'solid', width: 1.5, mark: 'none'};
+}
+function sigStyle(id){
+  const d = sigDefaults(id), o = V.style[id] || {};
+  return {color: o.color || d.color, dash: o.dash || d.dash, width: o.width || d.width, mark: o.mark || d.mark};
+}
+function sigMarker(g, x, y, kind, color, r){
+  g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 1.2;
+  if (kind === 'dot'){ g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+  else if (kind === 'box'){ g.fillRect(x-r, y-r, 2*r, 2*r); }
+  else if (kind === 'cross'){ g.beginPath(); g.moveTo(x-r,y-r); g.lineTo(x+r,y+r);
+                              g.moveTo(x+r,y-r); g.lineTo(x-r,y+r); g.stroke(); }
+}
+function tipNum(v){ if (v == null) return '—'; v = +v; if (!isFinite(v)) return '—';
+  if (v === 0) return '0'; const a = Math.abs(v);
+  return a >= 1e5 || a < 1e-3 ? v.toExponential(2) : (Number.isInteger(v) ? String(v) : v.toPrecision(4)); }
+function sigInv(cv, e){
+  const geo = cv._sigGeo; if (!geo) return null;
+  const r = cv.getBoundingClientRect();
+  const sx = geo.W / (r.width || 1), sy = geo.H / (r.height || 1);
+  const px = (e.clientX - r.left) * sx, py = (e.clientY - r.top) * sy;
+  const fx = (px - geo.padL) / Math.max(geo.W - geo.padL - geo.padR, 1);
+  const fy = (geo.H - geo.padB - py) / Math.max(geo.H - geo.padT - geo.padB, 1);
+  return {px: px, py: py, t: geo.t0 + fx * (geo.t1 - geo.t0), v: geo.lo + fy * (geo.hi - geo.lo), geo: geo};
+}
+function sigTime(){ return V.cur != null ? V.cur : V.t; }
+
+function sigRenderFig(fid, cv, g, W, H){
+  const padL = 62, padR = 12, padT = 10, padB = 22;
+  const css = getComputedStyle(document.body);
+  const GRIDCOL = css.getPropertyValue('--edge') || '#dde3ec';
+  const AXISCOL = css.getPropertyValue('--dim') || '#666';
+  const PLAYHEAD = css.getPropertyValue('--ink') || '#111';
+  const FF = css.fontFamily;
+  g.clearRect(0, 0, W, H);
+  const ent = [];
+  (V.figs[fid] ? V.figs[fid].ids : []).forEach(id => {
+    const meta = V.data && V.data.signals[id], d = V.series[id];
+    if (meta && d) ent.push({s: {t: d.t, y: d.y, unit: meta.unit}, sid: id, lab: meta.name});
+  });
+  if (!V.data || !ent.length){
+    g.fillStyle = GRIDCOL; g.font = '13px ' + FF; g.textAlign = 'center';
+    g.fillText(V.figs.length > 1 ? 'blank figure — tick a signal while this figure is active'
+                                 : 'Select one or more signals in the left panel', W/2, H/2);
+    if (cv) cv._sigGeo = null; return;
+  }
+  let t0 = Infinity, t1 = -Infinity, lo = Infinity, hi = -Infinity;
+  ent.forEach(e => { const s = e.s; if (!s.t.length) return;
+    t0 = Math.min(t0, s.t[0]); t1 = Math.max(t1, s.t[s.t.length-1]);
+    for (let i = 0; i < s.y.length; i++){ const v = s.y[i]; if (v == null || !isFinite(v)) continue;
+      if (v < lo) lo = v; if (v > hi) hi = v; } });
+  if (!isFinite(t0)){ t0 = 0; t1 = (V.data && V.data.t1) || 1; }
+  if (!isFinite(lo)){ lo = 0; hi = 1; }
+  if (hi - lo < 1e-9){ lo -= 1; hi += 1; }
+  const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+  const Z = V.fzoom[fid];
+  if (Z){ t0 = Z.t0; t1 = Z.t1; lo = Z.lo; hi = Z.hi; }
+  const X = t => padL + (t - t0) / Math.max(t1 - t0, 1e-9) * (W - padL - padR);
+  const Y = v => H - padB - (v - lo) / Math.max(hi - lo, 1e-9) * (H - padT - padB);
+  g.font = '9px ' + FF; g.textBaseline = 'middle';
+  for (let n = 0; n <= 4; n++){ const v = lo + (hi-lo)*n/4, y = Y(v);
+    g.strokeStyle = GRIDCOL; g.beginPath(); g.moveTo(padL, y); g.lineTo(W-padR, y); g.stroke();
+    g.fillStyle = AXISCOL; g.textAlign = 'right';
+    const a = Math.abs(v);
+    g.fillText(a >= 1e5 || (a < 1e-3 && a > 0) ? v.toExponential(1) : v.toFixed(a >= 100 ? 0 : 2), padL-5, y); }
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  for (let n = 0; n <= 4; n++){ const fr = n/4; g.fillStyle = AXISCOL;
+    g.fillText((t0 + (t1-t0)*fr).toFixed(1) + 's', padL + fr*(W-padL-padR), H-6); }
+  g.save(); g.beginPath(); g.rect(padL, padT, W-padL-padR, H-padT-padB); g.clip();
+  ent.forEach(e => { const s = e.s, st = sigStyle(e.sid);
+    g.strokeStyle = st.color; g.lineWidth = st.width; g.setLineDash(SIG_DASH[st.dash] || []);
+    g.beginPath(); let pen = false;
+    for (let i = 0; i < s.t.length; i++){
+      const v = s.y[i]; if (v == null || !isFinite(v)){ pen = false; continue; }
+      const px = X(s.t[i]), py = Y(v);
+      if (!pen){ g.moveTo(px, py); pen = true; }
+      else { g.lineTo(px, Y(s.y[i-1] == null ? v : s.y[i-1])); g.lineTo(px, py); } }
+    g.stroke(); g.setLineDash([]);
+    if (st.mark !== 'none'){ const stride = Math.max(1, Math.ceil(s.t.length/500));
+      for (let i = 0; i < s.t.length; i += stride){ const v = s.y[i];
+        if (v != null && isFinite(v)) sigMarker(g, X(s.t[i]), Y(v), st.mark, st.color, Math.max(1.6, st.width+0.6)); } } });
+  g.restore();
+  let lx = padL+6, ly = padT+8; g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = '10px ' + FF;
+  ent.forEach(e => { const s = e.s, st = sigStyle(e.sid);
+    if (s._stats === undefined){
+      const v = []; for (const x of s.y){ if (x != null && isFinite(x)) v.push(x); }
+      if (!v.length) s._stats = null;
+      else { let a = 0; for (const x of v) a += x; const mu = a/v.length;
+        let q = 0; for (const x of v) q += (x-mu)*(x-mu);
+        const sd = Math.sqrt(q/v.length);
+        const so = v.slice().sort((p,r) => p-r), h = so.length>>1;
+        const md = so.length%2 ? so[h] : (so[h-1]+so[h])/2;
+        const fi = (so.length-1)*0.95, fl = Math.floor(fi), fh = Math.ceil(fi);
+        const p95 = fl === fh ? so[fl] : so[fl] + (so[fh]-so[fl])*(fi-fl);
+        s._stats = {mu: mu, md: md, sd: sd, p95: p95}; } }
+    const sx = s._stats;
+    const txt = e.lab + ' [' + s.unit + ']' + (sx ? ' · μ=' + tipNum(sx.mu) + ' · x̃=' + tipNum(sx.md)
+      + ' · σ=' + tipNum(sx.sd) + ' · p95=' + tipNum(sx.p95) : '');
+    const w = g.measureText(txt).width + 22;
+    if (lx + w > W - padR){ lx = padL+6; ly += 14; }
+    g.strokeStyle = st.color; g.lineWidth = Math.min(st.width, 3); g.setLineDash(SIG_DASH[st.dash] || []);
+    g.beginPath(); g.moveTo(lx, ly); g.lineTo(lx+13, ly); g.stroke(); g.setLineDash([]);
+    if (st.mark !== 'none') sigMarker(g, lx+6.5, ly, st.mark, st.color, 2.2);
+    g.fillStyle = AXISCOL; g.fillText(txt, lx+17, ly); lx += w + 8; });
+  if (V.marks.length === 2){ const xa = X(V.marks[0]), xb = X(V.marks[1]);
+    g.fillStyle = 'rgba(124,58,237,.07)'; g.fillRect(Math.min(xa,xb), padT, Math.abs(xb-xa), H-padT-padB); }
+  const markCols = ['#7c3aed','#dc2626'];
+  V.marks.forEach((t, i) => { if (t < t0 || t > t1) return; const x = X(t), lb = i === 0 ? 'A' : 'B';
+    g.strokeStyle = markCols[i]; g.lineWidth = 1.5; g.setLineDash([5,3]);
+    g.beginPath(); g.moveTo(x, padT); g.lineTo(x, H-padB); g.stroke(); g.setLineDash([]);
+    g.fillStyle = markCols[i]; g.fillRect(x-8, H-padB-15, 16, 14);
+    g.fillStyle = '#fff'; g.font = 'bold 9px ' + FF; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(lb, x, H-padB-8); });
+  const tc = sigTime();
+  if (tc != null && tc >= t0 && tc <= t1){ const x = X(tc);
+    g.strokeStyle = PLAYHEAD; g.lineWidth = 1; g.beginPath(); g.moveTo(x, padT); g.lineTo(x, H-padB); g.stroke();
+    if (V.cur != null){
+      let txt = 't = ' + tc.toFixed(3) + ' s';
+      const hv = (V.hover && V.hover.fid === fid && V.hover.v != null) ? V.hover.v : null;
+      if (hv != null) txt += '  ·  y = ' + tipNum(hv);
+      g.font = '10px ' + FF;
+      const tw = g.measureText(txt).width + 8, tx = Math.max(padL, Math.min(x - tw/2, W - padR - tw));
+      g.fillStyle = 'rgba(255,255,255,.94)'; g.fillRect(tx, padT+2, tw, 15);
+      g.strokeStyle = 'rgba(20,30,45,.18)'; g.strokeRect(tx, padT+2, tw, 15);
+      g.fillStyle = AXISCOL; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(txt, tx + tw/2, padT + 9.5); } }
+  const bd = V.fband[fid];
+  if (bd){ g.fillStyle = 'rgba(10,132,194,0.13)'; g.strokeStyle = '#0a84c2'; g.lineWidth = 1; g.setLineDash([4,3]);
+    g.fillRect(bd.x0, bd.y0, bd.x1-bd.x0, bd.y1-bd.y0);
+    g.strokeRect(bd.x0, bd.y0, bd.x1-bd.x0, bd.y1-bd.y0); g.setLineDash([]); }
+  if (Z){ g.fillStyle = AXISCOL; g.font = '10px ' + FF; g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+    g.fillText('zoomed — double-click to reset', W-padR-2, padT+9); }
+  if (cv) cv._sigGeo = {padL:padL, padR:padR, padT:padT, padB:padB, W:W, H:H, t0:t0, t1:t1, lo:lo, hi:hi};
+}
+
+let vioDrawPending = false;
+function vioDrawAll(){
+  if (vioDrawPending) return;
+  vioDrawPending = true;
+  requestAnimationFrame(() => { vioDrawPending = false; vioDrawNow(); });
+}
+function vioDrawNow(){
+  vioDraw3d();
+  try { vioStatsDraw(); } catch (e){ console.error('vioStatsDraw', e); }
+  try { vioLive(); } catch (e){ console.error('vioLive', e); }
+  const host = document.getElementById('vioFigs');
+  if (!host) return;
+  while (host.children.length > V.figs.length) host.removeChild(host.lastChild);
+  while (host.children.length < V.figs.length){
+    const i = host.children.length;
+    const d = document.createElement('div'); d.className = 'vfig';
+    d.innerHTML = '<div class="vfighd"><b>f' + (i+1) + '</b><span class="gr"></span></div>'
+                + '<canvas style="height:170px"></canvas>';
+    host.appendChild(d);
+    sigBindFig(d.querySelector('canvas'), i);
+  }
+  V.figs.forEach((f, i) => {
+    const box = host.children[i], cv = box.querySelector('canvas');
+    box.querySelector('.gr').textContent = f.ids.length
+      ? f.ids.map(id => (V.data.signals[id] || {}).name).join(' · ') : 'tick signals on the left';
+    vioFit(cv);
+    sigRenderFig(i, cv, cv.getContext('2d'), cv.clientWidth, cv.clientHeight);
+  });
+}
+
+(function(){
+  const DRAG_MIN = 5;
+  let zd = null;
+  window.sigBindFig = function(cv, fid){
+    cv.addEventListener('mousedown', e => { if (e.button !== 0) return;
+      const p = sigInv(cv, e); if (!p || !V.data) return;
+      if (V.measure){ V.marks = V.marks.length >= 2 ? [p.t] : V.marks.concat([p.t]); vioDrawAll(); return; }
+      zd = {cv:cv, fid:fid, x0:p.px, y0:p.py, t0:p.t, v0:p.v, shift:e.shiftKey, moved:false};
+      e.preventDefault(); });
+    cv.addEventListener('mousemove', e => { if (!V.data || zd) return;
+      const p = sigInv(cv, e); if (!p) return;
+      V.cur = Math.max(p.geo.t0, Math.min(p.geo.t1, p.t));
+      V.hover = {fid:fid, v:p.v};
+      vioClocks(V.cur); vioDrawAll(); });
+    cv.addEventListener('mouseleave', () => { if (zd) return; V.cur = null; V.hover = null; vioDrawAll(); });
+    cv.addEventListener('dblclick', () => { delete V.fzoom[fid]; delete V.fband[fid]; vioDrawAll(); });
+  };
+  window.addEventListener('mousemove', e => { if (!zd) return;
+    const p = sigInv(zd.cv, e); if (!p) return;
+    if (Math.abs(p.px - zd.x0) >= DRAG_MIN || Math.abs(p.py - zd.y0) >= DRAG_MIN) zd.moved = true;
+    V.fband[zd.fid] = {x0:Math.min(zd.x0,p.px), x1:Math.max(zd.x0,p.px),
+                       y0:zd.shift ? p.geo.padT : Math.min(zd.y0,p.py),
+                       y1:zd.shift ? p.geo.H - p.geo.padB : Math.max(zd.y0,p.py)};
+    vioDrawAll(); });
+  window.addEventListener('mouseup', e => { if (!zd) return;
+    const p = sigInv(zd.cv, e), d = zd; zd = null; delete V.fband[d.fid];
+    if (!p || !d.moved){ vioSeek(d.t0); return; }
+    const t0 = Math.min(d.t0, p.t), t1 = Math.max(d.t0, p.t);
+    const lo = d.shift ? p.geo.lo : Math.min(d.v0, p.v), hi = d.shift ? p.geo.hi : Math.max(d.v0, p.v);
+    if (t1 - t0 > 1e-6 && hi - lo > 1e-12) V.fzoom[d.fid] = {t0:t0, t1:t1, lo:lo, hi:hi};
+    vioDrawAll(); });
+})();
+
+V.cam = {az: -0.9, el: 0.5, zoom: 1, px: 0, py: 0};
+V.dropped = [];
+V.fitAll = false;   // default: scale to the reference track, not the diverged one
+V.traj = null;
+V.trajHide = new Set();   // tracks switched off by clicking their legend entry (by kind: GPS, FUSE, VIO, ATLAS)
+V.legendBoxes = [];       // the legend's hit boxes, refreshed by every draw
+
+function vioFit(cv){
+  const r = cv.getBoundingClientRect(), dp = window.devicePixelRatio || 1;
+  if (!r.width) return;
+  cv.width = r.width * dp; cv.height = r.height * dp;
+  cv.getContext('2d').setTransform(dp, 0, 0, dp, 0, 0);
+}
+
+function vioProj(x, y, z, C, ctr, sc, W, H){
+  const ca = Math.cos(C.az), sa = Math.sin(C.az), ce = Math.cos(C.el), se = Math.sin(C.el);
+  const dx = x - ctr[0], dy = y - ctr[1], dz = z - ctr[2];
+  const ex = dx * ca - dy * sa, ey = dx * sa + dy * ca;
+  return [W / 2 + ex * sc + C.px, H / 2 - (dz * ce - ey * se) * sc + C.py, ey * ce + dz * se];
+}
+
+function vioDraw3d(){
+  const cv = document.getElementById('vioTraj');
+  if (!cv || !cv.clientWidth) return;
+  vioFit(cv);
+  const css = getComputedStyle(document.body);
+  const GRIDCOL = css.getPropertyValue('--edge') || '#dde3ec';
+  const AXISCOL = css.getPropertyValue('--dim') || '#666';
+  const g = cv.getContext('2d'), W = cv.clientWidth, H = cv.clientHeight;
+  g.clearRect(0, 0, W, H);
+  const trs = V.traj ? V.traj : [];
+  if (!trs.length){
+    g.fillStyle = GRIDCOL; g.font = '13px ' + css.fontFamily;
+    g.textAlign = 'center';
+    g.fillText(V.trajErr || 'no trajectory in this run', W / 2, H / 2);
+    return;
+  }
+  let mn = [1e18, 1e18, 1e18], mx = [-1e18, -1e18, -1e18];
+  const forBounds = V.fitAll ? trs : trs.slice(0, 1);
+  forBounds.forEach(T => { ['x','y','z'].forEach((k, i) => { for (const v of T[k]){ if (v < mn[i]) mn[i] = v; if (v > mx[i]) mx[i] = v; } }); });
+  const ctr = [0,1,2].map(i => (mn[i] + mx[i]) / 2);
+  const span = Math.max(mx[0]-mn[0], mx[1]-mn[1], mx[2]-mn[2], 1e-6);
+  const sc = V.cam.zoom * 0.78 * Math.min(W, H) / span;
+  const P = (x, y, z) => vioProj(x, y, z, V.cam, ctr, sc, W, H);
+  g.strokeStyle = GRIDCOL; g.lineWidth = 1;
+  const step = Math.pow(10, Math.round(Math.log10(span / 5)));
+  for (let gx = Math.ceil(mn[0]/step)*step; gx <= mx[0]; gx += step){
+    const a = P(gx, mn[1], mn[2]), b = P(gx, mx[1], mn[2]);
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }
+  for (let gy = Math.ceil(mn[1]/step)*step; gy <= mx[1]; gy += step){
+    const a = P(mn[0], gy, mn[2]), b = P(mx[0], gy, mn[2]);
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke(); }
+  const O = P(mn[0], mn[1], mn[2]);
+  const AX = [[P(mx[0],mn[1],mn[2]),'E m'], [P(mn[0],mx[1],mn[2]),'N m'], [P(mn[0],mn[1],mx[2]),'U m']];
+  g.strokeStyle = AXISCOL; g.lineWidth = 1.2; g.font = '10px ' + css.fontFamily;
+  g.fillStyle = AXISCOL; g.textAlign = 'center'; g.textBaseline = 'middle';
+  AX.forEach(([p, lb]) => { g.beginPath(); g.moveTo(O[0], O[1]); g.lineTo(p[0], p[1]); g.stroke();
+                            g.fillText(lb, p[0], p[1] - 8); });
+  const nice = x => { const q = Math.pow(10, Math.floor(Math.log10(x))), f = x / q; return (f >= 5 ? 5 : f >= 2 ? 2 : 1) * q; };
+  const len = m => m >= 1000 ? +(m / 1000).toFixed(2) + ' km' : +m.toFixed(m < 1 ? 2 : 0) + ' m';
+  g.font = '9.5px ' + css.fontFamily;
+  const ticks = (i, st, at, ox = 0, oy = 10) => {
+    const a = at(0), b = at(st), every = Math.max(1, Math.ceil(40 / Math.max(1e-6, Math.hypot(b[0] - a[0], b[1] - a[1]))));
+    for (let v = Math.ceil(mn[i] / st) * st; v <= mx[i] + 1e-9; v += st){
+      if (Math.round(v / st) % every) continue;
+      const q = at(v - mn[i]);
+      g.beginPath(); g.arc(q[0], q[1], 1.6, 0, 7); g.fill();
+      g.fillText(String(Math.round(v)), q[0] + ox, q[1] + oy);
+    }
+  };
+  ticks(0, step, d => P(mn[0] + d, mn[1], mn[2]));
+  ticks(1, step, d => P(mn[0], mn[1] + d, mn[2]));
+  if (mx[2] - mn[2] > 1){ g.textAlign = 'right'; ticks(2, nice((mx[2] - mn[2]) / 4), d => P(mn[0], mn[1], mn[2] + d), -6, 0); }
+  const bm = nice(110 / sc), bl = bm * sc, bx = 12, by = H - 36;
+  g.strokeStyle = AXISCOL; g.lineWidth = 1.6; g.beginPath();
+  g.moveTo(bx, by - 4); g.lineTo(bx, by); g.lineTo(bx + bl, by); g.lineTo(bx + bl, by - 4); g.stroke();
+  g.textAlign = 'left'; g.textBaseline = 'bottom'; g.font = '10.5px ' + css.fontFamily;
+  g.fillText(len(bm), bx, by - 5);
+  g.textBaseline = 'middle'; g.font = '9.5px ' + css.fontFamily;
+  g.fillText('grid ' + len(step), bx + bl + 8, by - 2);
+  const tcut = V.t;
+  const path = (T, upto) => {
+    const seg = T.seg; let pts = [];
+    const flush = () => { if (pts.length > 1){ g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); } pts = []; };
+    for (let i = 0; i < upto; i++){
+      const p = P(T.x[i], T.y[i], T.z[i]);
+      if (seg && i && seg.has(i)){
+        flush(); g.setLineDash([3, 5]); g.beginPath(); const a = P(T.x[i-1], T.y[i-1], T.z[i-1]);
+        g.moveTo(a[0], a[1]); g.lineTo(p[0], p[1]); g.stroke(); g.setLineDash([]);
+      }
+      pts.push(p);
+    }
+    flush();
+    if (T.dots){ g.fillStyle = T.color; for (let i = 0; i < upto; i++){ const p = P(T.x[i], T.y[i], T.z[i]); g.beginPath(); g.arc(p[0], p[1], 1.6, 0, 7); g.fill(); } }
+  };
+  trs.forEach(T => {
+    if (T.hidden) return;
+    const n = T.t.length;
+    let cut = n;
+    if (tcut != null){ let lo = 0, hi = n; while (lo < hi){ const m = (lo+hi)>>1; if (T.t[m] <= tcut) lo = m+1; else hi = m; } cut = lo; }
+    g.globalAlpha = .18; g.strokeStyle = T.color; g.lineWidth = 1;
+    path(T, n);
+    g.globalAlpha = 1;
+    if (cut > 0){
+      g.strokeStyle = T.color; g.lineWidth = 2.2;
+      path(T, cut);
+      const q = P(T.x[cut-1], T.y[cut-1], T.z[cut-1]);
+      g.fillStyle = T.color; g.beginPath(); g.arc(q[0], q[1], 5.5, 0, 7); g.fill();
+      g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.arc(q[0], q[1], 5.5, 0, 7); g.stroke();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(q[0], q[1], 1.8, 0, 7); g.fill();
+    }
+  });
+  let ly = 16; g.textAlign = 'left'; g.textBaseline = 'middle'; g.font = '11px ' + css.fontFamily;
+  V.legendBoxes = [];
+  trs.forEach((T, i) => {
+    g.globalAlpha = T.hidden ? .45 : 1;
+    if (T.hidden){ g.strokeStyle = T.color; g.lineWidth = 1.2; g.strokeRect(12.5, ly-3.5, 7, 7); }
+    else { g.fillStyle = T.color; g.fillRect(12, ly-4, 8, 8); }
+    g.fillStyle = AXISCOL; g.fillText(T.name, 25, ly);
+    const w = g.measureText(T.name).width;
+    if (T.hidden){ g.strokeStyle = AXISCOL; g.lineWidth = 1; g.beginPath(); g.moveTo(25, ly); g.lineTo(25 + w, ly); g.stroke(); }
+    g.globalAlpha = 1;
+    V.legendBoxes.push({x: 10, y: ly - 7, w: w + 18, h: 14, i});
+    ly += 15;
+  });
+}
+
+async function vioLoadTraj(){
+  V.traj = null; V.trajErr = null; V.trajNote = ''; V.trajM = null; V.trajS = null; V.trajFused = false; V.trajRawM = null;
+  try {
+    const r = await fetch('/api/vio/' + encodeURIComponent(V.run) + '/traj');
+    const j = await r.json();
+    if (j.error){ V.trajErr = j.error; vioDraw3d(); return; }
+    const mk = (xyz, t, name, color) => ({
+      t, name, color,
+      x: xyz.map(p => p[0]), y: xyz.map(p => p[1]), z: xyz.map(p => p[2]),
+    });
+    V.traj = [mk(j.gps, j.gps_t, 'GPS', '#eb6834'),
+              mk(j.vio, j.vio_t, j.yaw_src === 'map' ? 'Fused' : 'VIO', '#2a78d6')];
+    if (j.vio_raw) V.traj.push(mk(j.vio_raw, j.vio_raw_t, 'VIO', '#1baf7a'));
+    if (j.atlas && j.atlas.length){           // the fixes: one lock joined, the gap to the next cold start dotted
+      const A = mk(j.atlas, j.atlas_t, 'VPS', '#c9a300');
+      A.seg = new Set(j.atlas_seg || []); A.dots = true; V.traj.push(A);
+    }
+    V.traj.forEach(T => { if (V.trajHide.has(T.name.split('  ')[0])) T.hidden = true; });
+    const yg = j.yaw_gps_deg === null || j.yaw_gps_deg === undefined ? '' : ' (GPS fit on the first 150 m: ' + j.yaw_gps_deg.toFixed(1) + '°)';
+    V.trajNote = j.yaw_src === 'map' ? 'fused track in the map frame, placed by the fusion origin: not aligned to GPS'
+               : j.yaw_src === 'pixhawk' ? 'yaw ' + j.yaw_deg.toFixed(1) + '° from the Pixhawk heading at VIO start' + yg
+               : j.yaw_src === 'gps motion' ? 'yaw ' + j.yaw_deg.toFixed(1) + '° fitted on the first 150 m flown (no Pixhawk)'
+               : 'no heading: VIO in its own frame';
+    V.trajM = j.metrics; V.trajS = j.err; V.trajGT = j.gt_source || ''; V.trajFused = j.yaw_src === 'map'; V.trajRawM = j.raw_metrics || null;
+  } catch (e){ V.trajErr = 'traj: ' + e.message; }
+  vioDrawAll();
+}
+
+(function(){
+  const tj = document.getElementById('vioTraj');
+  if (!tj) return;
+  let drag = null, down = null;                       // down: where the button went down, kept past the mouseup for the click
+  const start = (e, pan) => { down = {x:e.clientX, y:e.clientY}; drag = {x:e.clientX, y:e.clientY, az:V.cam.az, el:V.cam.el,
+                                      px:V.cam.px, py:V.cam.py, pan:pan}; e.preventDefault(); };
+  const legendAt = e => { const r = tj.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+                          return V.legendBoxes.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h); };
+  tj.addEventListener('mousedown', e => start(e, e.button === 1 || e.button === 2 || e.shiftKey));
+  tj.addEventListener('mousemove', e => { tj.style.cursor = (!drag && legendAt(e)) ? 'pointer' : ''; });
+  tj.addEventListener('click', e => {                 // a click on a legend entry, not the end of a drag
+    const b = legendAt(e);
+    if (!b || (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 3)) return;
+    const T = (V.traj || [])[b.i]; if (!T) return;
+    T.hidden = !T.hidden;
+    const kind = T.name.split('  ')[0];
+    if (T.hidden) V.trajHide.add(kind); else V.trajHide.delete(kind);
+    vioDraw3d();
+  });
+  tj.addEventListener('contextmenu', e => e.preventDefault());   // right-drag pans instead
+  window.addEventListener('mousemove', e => { if (!drag) return;
+    if (drag.pan){
+      V.cam.px = drag.px + (e.clientX - drag.x);
+      V.cam.py = drag.py + (e.clientY - drag.y);
+    } else {
+      V.cam.az = drag.az + (e.clientX - drag.x) * 0.008;
+      V.cam.el = Math.max(-1.5, Math.min(1.5, drag.el + (e.clientY - drag.y) * 0.008));
+    }
+    vioDraw3d(); });
+  window.addEventListener('mouseup', () => { drag = null; });
+  tj.addEventListener('wheel', e => { if (!wheelZoom(e, tj.parentElement)) return; e.preventDefault();
+    V.cam.zoom = Math.max(0.05, Math.min(200, V.cam.zoom * (e.deltaY < 0 ? 1.12 : 1/1.12))); vioDraw3d(); }, {passive:false});
+  tj.addEventListener('dblclick', () => { V.cam = {az:-0.9, el:0.5, zoom:1, px:0, py:0}; vioDraw3d(); });
+  const fb = document.getElementById('vioFitAll');
+  if (fb) fb.onclick = () => { V.fitAll = !V.fitAll; fb.classList.toggle('on', V.fitAll);
+                               V.cam.px = V.cam.py = 0; V.cam.zoom = 1; vioDraw3d(); };
+})();
+
+function vioClocks(t){
+  const a = document.getElementById('vioClock'), b = document.getElementById('vidClock');
+  if (a) a.textContent = 't = ' + t.toFixed(1) + ' s';
+  if (b) b.textContent = 't = ' + t.toFixed(1) + ' s';
+}
+
+const VID_LOCK_S = 0.05;    // closer than this to the wanted frame: nothing worth doing
+const VID_SNAP_S = 0.75;    // further than this: only a seek recovers it
+const VID_MAX_RATE = 16;    // the fastest rate a browser will take; past this, step instead
+const VID_STEP_MS = 80;     // floor between steps -- a seek still in flight always wins
+
+function vioVidSeek(v, to){
+  if (v.seeking) return false;
+  V.vidSeekT0 = performance.now();
+  v.currentTime = to;
+  return true;
+}
+
+function vioVidEl(){ const v = document.getElementById('vioVidBig'); return v && v.duration ? v : null; }
+
+function vioCtFor(t){
+  const v = vioVidEl(), vt = V.data && V.data.video_t;
+  if (!v || !vt || vt.length < 2) return null;
+  const n = vt.length - 1;
+  if (t <= vt[0]) return 0;
+  if (t >= vt[n]) return v.duration;
+  let lo = 0, hi = n;                       // binary search; this used to scan from 0 at 60 Hz
+  while (hi - lo > 1){ const m = (lo + hi) >> 1; if (vt[m] <= t) lo = m; else hi = m; }
+  const f = (t - vt[lo]) / Math.max(1e-9, vt[hi] - vt[lo]);
+  return (lo + f) / n * v.duration;
+}
+function vioTFor(ct){
+  const v = vioVidEl(), vt = V.data && V.data.video_t;
+  if (!v || !vt || vt.length < 2) return null;
+  const n = vt.length - 1, x = Math.max(0, Math.min(1, ct / v.duration)) * n;
+  const i = Math.min(n - 1, Math.floor(x));
+  return vt[i] + (x - i) * (vt[i + 1] - vt[i]);
+}
+function vioRateBase(){
+  const v = vioVidEl(), vt = V.data && V.data.video_t;
+  if (!v || !vt || vt.length < 2) return 1;
+  const span = vt[vt.length - 1] - vt[0];
+  return span > 0.1 ? v.duration / span : 1;
+}
+const vioRate = r => Math.max(0.0625, Math.min(16, r));   // what a browser will accept
+
+function vioVidFollow(t){
+  const v = vioVidEl();
+  if (!v || V.vidDriving) return;
+  if (!V.over){ if (!v.paused) v.pause(); return; }       // not the page being looked at
+  const want = vioCtFor(t);
+  if (want === null) return;
+  const base = vioRateBase(), rate = base * (S.speed || 1);
+
+  if (!S.playing){                                        // parked, or being scrubbed
+    if (!v.paused) v.pause();
+    v.playbackRate = vioRate(base);
+    if (Math.abs(v.currentTime - want) > VID_LOCK_S) vioVidSeek(v, want);
+    return;
+  }
+  if (rate > VID_MAX_RATE){                               // past what a browser will play: step
+    if (!v.paused) v.pause();
+    const lead = Math.min(2, V.vidSeekCost || 0) * (S.speed || 1);
+    const aim = vioCtFor(t + lead);
+    const now = performance.now();
+    if (now - (V.vidStepAt || 0) >= VID_STEP_MS && vioVidSeek(v, aim === null ? want : aim)) V.vidStepAt = now;
+    return;
+  }
+  const drift = v.currentTime - want;                     // positive: the video is ahead
+  if (Math.abs(drift) > VID_SNAP_S) vioVidSeek(v, want);
+  else v.playbackRate = vioRate(rate * (1 - Math.max(-0.25, Math.min(0.25, drift))));
+  if (v.paused){ const q = v.play(); if (q && q.catch) q.catch(() => {}); }
+}
+
+function vioSeek(t, quiet){
+  V.t = t;
+  vioClocks(t);
+  if (!quiet) vioToAtlas(t);
+  vioVidFollow(t);
+  vioDrawAll();
+}
+
+function vioVidTime(v){
+  if (S.playing || v.paused || v.seeking) return;
+  const t = vioTFor(v.currentTime);
+  if (t === null) return;
+  V.vidDriving = true;
+  try { vioSeek(t); } finally { V.vidDriving = false; }
+}
+
+const VL = (key, lab) => key + '__' + lab.replace(/ /g, '_');
+const XYZ = (key, lab, n = 3) => ['x', 'y', 'z'].slice(0, n).map(c => VL(key, lab + ' ' + c));
+const NORM = v => Math.hypot.apply(null, v);
+const MS = v => v[0] * 1000;
+const FLUX_STATE = [[2, 'ZUPT'], [4, 'MSCKF'], [8, 'SLAM'], [16, 'reuse'], [32, 'hold'], [64, 'dead reckoning'], [1, 'init']];
+const AT = (key, src, ang) => VL(key, src + ' ' + ang);
+const P_ = ang => AT('fcu_att', 'Pixhawk', ang);
+const VIO_LIVE = [
+  ['ATTITUDE · VEHICLE FRAME', [
+    {lab: 'roll · Pixhawk', ids: [P_('roll')], u: '°', dp: 2, nomed: true},
+    {lab: 'roll · VIO', ids: [AT('vio_att', 'VIO', 'roll')], ref: P_('roll'), u: '°', dp: 2},
+    {lab: 'roll · atlas', ids: [AT('atlas_att_body', 'atlas', 'roll')], ref: P_('roll'), u: '°', dp: 2},
+    {lab: 'pitch · Pixhawk', ids: [P_('pitch')], u: '°', dp: 2, nomed: true},
+    {lab: 'pitch · VIO', ids: [AT('vio_att', 'VIO', 'pitch')], ref: P_('pitch'), u: '°', dp: 2},
+    {lab: 'pitch · atlas', ids: [AT('atlas_att_body', 'atlas', 'pitch')], ref: P_('pitch'), u: '°', dp: 2},
+    {lab: 'heading · Pixhawk', ids: [P_('heading')], u: '°', dp: 1, nomed: true},
+    {lab: 'heading · VIO', ids: [AT('vio_att', 'VIO', 'heading')], ref: P_('heading'), wrap: true, u: '°', dp: 1},
+  ]],
+  ['ATTITUDE · EC IMU FRAME', [
+    {lab: 'roll · atlas', ids: [VL('atlas_att_x', 'atlas roll')], u: '°', dp: 2, nomed: true},
+    {lab: 'roll · VIO', ids: [AT('vio_att_imu', 'VIO', 'roll')], ref: VL('atlas_att_x', 'atlas roll'), refn: 'atlas', u: '°', dp: 2},
+    {lab: 'pitch · atlas', ids: [VL('atlas_att_y', 'atlas pitch')], u: '°', dp: 2, nomed: true},
+    {lab: 'pitch · VIO', ids: [AT('vio_att_imu', 'VIO', 'pitch')], ref: VL('atlas_att_y', 'atlas pitch'), refn: 'atlas', u: '°', dp: 2},
+  ], have => !have[P_('roll')]],
+  ['ODOMETRY', [
+    {lab: 'speed', ids: XYZ('odom_vel', 'velocity'), f: NORM, u: 'm/s', dp: 1},
+    {lab: 'position σ horiz', ids: XYZ('odom_pos_sigma', 'position sigma', 2), f: NORM, u: 'm', dp: 2},
+    {lab: 'position σ vert', ids: [VL('odom_pos_sigma', 'position sigma z')], u: 'm', dp: 2},
+    {lab: 'yaw σ', ids: [VL('odom_rot_sigma', 'attitude sigma z')], f: v => v[0] * 180 / Math.PI, u: '°', dp: 2},
+  ]],
+  ['FEATURES', [
+    {lab: 'detected', ids: [VL('imu_num_detected', 'detected')]},
+    {lab: 'matched KLT', ids: [VL('imu_num_matched_klt', 'matched KLT')], warn: 'low'},
+    {lab: 'post cleanup', ids: [VL('imu_num_post_cleanup', 'post cleanup')], warn: 'low'},
+    {lab: 'triangulated', ids: [VL('imu_num_triangulated', 'triangulated')]},
+    {lab: 'chi2 pass', ids: [VL('imu_num_chi2pass', 'chi2 pass')], warn: 'low'},
+    {lab: 'detected', ids: [VL('flux_feats_detected', 'feats_detected')]},
+    {lab: 'tracked', ids: [VL('flux_feats_tracked', 'feats_tracked')], warn: 'low'},
+    {lab: 'MSCKF candidates', ids: [VL('flux_feats_candidates', 'feats_candidates')]},
+    {lab: 'MSCKF used', ids: [VL('flux_feats_msckf', 'feats_msckf')], warn: 'low'},
+    {lab: 'occupied cells /25', ids: [VL('flux_fe_cells', 'fe_cells')], warn: 'low'},
+  ]],
+  ['SLAM', [
+    {lab: 'active', ids: [VL('num_slam_active', 'SLAM active')], warn: 'low'},
+    {lab: 'delayed candidates', ids: [VL('num_slam_delayed_candidates', 'delayed cand')]},
+    {lab: 'triangulated', ids: [VL('num_slam_triangulated', 'triangulated')]},
+    {lab: 'update candidates', ids: [VL('num_slam_update_candidates', 'update cand')]},
+    {lab: 'chi2 pass', ids: [VL('num_slam_chi2pass', 'chi2 pass')], warn: 'low'},
+    {lab: 'active', ids: [VL('flux_slam_active', 'slam_active')], warn: 'low'},
+    {lab: 'chi2 pass', ids: [VL('flux_slam_chi2', 'slam_chi2')], warn: 'low'},
+    {lab: 'used', ids: [VL('flux_slam_used', 'slam_used')]},
+    {lab: 'promoted', ids: [VL('flux_slam_promoted', 'slam_promoted')]},
+  ]],
+  ['RANSAC', [
+    {lab: 'inliers / in', ids: [VL('ransac_inliers', 'RANSAC inliers'), VL('ransac_in', 'RANSAC in')],
+     f: v => v[1] ? 100 * v[0] / v[1] : NaN, u: '%', dp: 0},
+    {lab: 'inliers', ids: [VL('ransac_inliers', 'RANSAC inliers')], warn: 'low'},
+    {lab: 'iterations', ids: [VL('ransac_iters', 'RANSAC iters')]},
+    {lab: 'lost to RANSAC', ids: [VL('flux_fe_lost_ransac', 'fe_lost_ransac')]},
+    {lab: 'lost to KLT', ids: [VL('flux_fe_lost_klt', 'fe_lost_klt')]},
+  ]],
+  ['FILTER', [
+    {lab: 'hf_sigma', ids: [VL('hf_sigma', 'hf_sigma')]},
+    {lab: 'lambda_scale', ids: [VL('lambda_scale', 'lambda_scale')]},
+    {lab: 'oldest clone age', ids: [VL('oldest_clone_age', 'oldest clone age')], u: 's', dp: 2},
+    {lab: '|gyro bias|', ids: XYZ('imu_bg', 'gyro bias'), f: NORM, u: 'rad/s', dp: 4},
+    {lab: '|accel bias|', ids: XYZ('imu_ba', 'accel bias'), f: NORM, u: 'm/s²', dp: 3},
+    {lab: 'cam-IMU dt', ids: [VL('imu_dt_cam', 'cam-IMU dt')], f: MS, u: 'ms', dp: 2},
+    {lab: 'update', ids: [VL('flux_filter_state', 'filter_state')],
+     txt: x => FLUX_STATE.filter(([b]) => x & b).map(([, n]) => n).join(' + ') || 'propagation only'},
+    {lab: 'pixel-noise scale', ids: [VL('flux_noise_scale', 'noise_scale')], dp: 2},
+    {lab: 'clones · window', ids: [VL('flux_clones', 'clones'), VL('flux_window_span_s', 'window_span_s')],
+     txt: (x, v) => v[0] + ' · ' + v[1].toFixed(1) + ' s'},
+    {lab: '|gyro bias|', ids: [VL('flux_bgx', 'bgx'), VL('flux_bgy', 'bgy'), VL('flux_bgz', 'bgz')], f: NORM, u: 'rad/s', dp: 4},
+    {lab: '|accel bias|', ids: [VL('flux_bax', 'bax'), VL('flux_bay', 'bay'), VL('flux_baz', 'baz')], f: NORM, u: 'm/s²', dp: 3},
+    {lab: 'filter starts', ids: [VL('flux_filter_starts', 'filter_starts')], counter: true},
+  ]],
+  ['TIMING', [
+    {lab: 'frame total', ids: [VL('time_total', 'total')], f: MS, u: 'ms', dp: 1, warn: 'high'},
+    {lab: 'track', ids: [VL('time_track', 'track')], f: MS, u: 'ms', dp: 1, warn: 'high'},
+    {lab: 'MSCKF update', ids: [VL('time_msckf', 'MSCKF update')], f: MS, u: 'ms', dp: 1, warn: 'high'},
+    {lab: 'propagate', ids: [VL('time_prop', 'propagate')], f: MS, u: 'ms', dp: 2},
+    {lab: 'frame total', ids: [VL('flux_total_ms', 'total_ms')], u: 'ms', dp: 1, warn: 'high'},
+    {lab: 'front end', ids: [VL('flux_fe_ms', 'fe_ms')], u: 'ms', dp: 1, warn: 'high'},
+    {lab: 'filter', ids: [VL('flux_flux_ms', 'flux_ms')], u: 'ms', dp: 1, warn: 'high'},
+    {lab: 'latency', ids: [VL('flux_latency_ms', 'latency_ms')], u: 'ms', dp: 0, warn: 'high'},
+  ]],
+  ['SENSORS', [
+    {lab: 'cam1 missed strobes', ids: [VL('ec_diag_cam1_missed_strobes', 'cam1 missed strobes')], counter: true},
+    {lab: 'PTP timestamp misses', ids: [VL('ec_diag_ptp_ts_miss', 'PTP timestamp misses')], counter: true},
+    {lab: 'range errors', ids: [VL('ec_diag_range_errors', 'range errors')], counter: true},
+    {lab: 'EC fault flags', ids: [VL('ec_diag_fault_flags', 'fault flags')], bad: x => x !== 0},
+    {lab: 'IMU largest gap', ids: [VL('flux_imu_max_gap_ms', 'imu_max_gap_ms')], u: 'ms', dp: 1, warn: 'high'},
+    {lab: 'frames dropped (late)', ids: [VL('flux_frames_dropped_late', 'frames_dropped_late')], counter: true},
+    {lab: 'Jetson CPU', ids: [VL('hw_cpu_usage_percent', 'CPU')], u: '%', dp: 0},
+    {lab: 'Jetson memory', ids: [VL('hw_mem_used_mb', 'memory')], u: 'MB', dp: 0},
+  ]],
+];
+
+function vioAt(id, t){
+  const d = V.series[id];
+  if (!d || !d.t || !d.t.length) return null;
+  const k = vioNearest(d.t, t);
+  if (Math.abs(d.t[k] - t) > 5) return null;
+  const y = d.y[k];
+  return y === null || y === undefined ? null : y;
+}
+const vlNum = (x, dp) => !isFinite(x) ? '--' : dp !== undefined ? x.toFixed(dp) : Number.isInteger(x) ? String(x) : vioFmt(x);
+const vlRow = (k, v, g, bad, tip) => '<span class="k"' + (tip ? ' title="' + esc(tip) + '"' : '') + '>' + k + '</span><span class="v' +
+  (bad ? ' bad' : '') + '">' + v + '</span><span class="g">' + (g || '') + '</span>';
+
+function vioLiveRow(r){
+  const xs = r.ids.map(id => vioAt(id, V.t));
+  if (xs.some(x => x === null)) return vlRow(esc(r.lab), '--');
+  const f = r.f || (v => v[0]), x = f(xs);
+  let g = '', bad = r.bad ? r.bad(x) : false;
+  if (r.ref){                           // the difference from the reference source at the same instant
+    const p = vioAt(r.ref, V.t);
+    if (p !== null){ let d = x - p; if (r.wrap) d = ((d + 540) % 360) - 180; g = 'Δ ' + (d >= 0 ? '+' : '') + d.toFixed(r.dp) + ' vs ' + (r.refn || 'Pixhawk'); }
+  } else if (r.nomed){
+  } else if (r.counter){
+    const p = vioAt(r.ids[0], V.t - 10), d = p === null ? NaN : x - p;
+    g = isFinite(d) ? '+' + d + ' in 10 s' : ''; bad = bad || d > 0;
+  } else if (r.ids.length === 1 && !r.txt){
+    const m = V.data.signals[r.ids[0]].med;
+    if (m !== null && m !== undefined){
+      const mm = f([m]); g = 'med ' + vlNum(mm, r.dp);
+      if (r.warn === 'low') bad = mm > 0 && x < 0.5 * mm;
+      if (r.warn === 'high') bad = mm > 0 && x > 2 * mm;
+    }
+  }
+  return vlRow(esc(r.lab), r.txt ? esc(r.txt(x, xs)) : vlNum(x, r.dp) + (r.u ? ' ' + r.u : ''), g, bad);
+}
+
+const AXN = ['E', 'N', 'U'];
+function vlOpen(key, k, v, g, bad, tip, subs){
+  const open = V.liveOpen.has(key);
+  let h = '<span class="k xk" data-x="' + key + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '>' + (open ? '▾ ' : '▸ ') + k +
+          '</span><span class="v' + (bad ? ' bad' : '') + '">' + v + '</span><span class="g">' + (g || '') + '</span>';
+  if (open) for (const [sk, sv, sg, sb] of subs)
+    h += '<span class="k xsub">' + sk + '</span><span class="v' + (sb ? ' bad' : '') + '">' + sv + '</span><span class="g">' + (sg || '') + '</span>';
+  return h;
+}
+
+function vioFlightCard(){
+  if (!V.trajFused) return flightCard(V.trajM, 'VIO', false, 'f');
+  return flightCard(V.trajM, 'FUSED', true, 'f');   // public demo: the fused card only
+}
+
+function flightCard(M, TNU, FU, pid){
+  const f = (x, u, d = 1) => x === null || x === undefined || !isFinite(x) ? '--' : f1(x, d) + (u ? ' ' + u : '');
+  const TN = FU ? 'fuse' : 'VIO', RAW = V.trajFused && !FU;   // RAW: the flux track beside the fused one
+  let h = '<div class="card"><h3>FULL FLIGHT · ' + TNU + ' vs GPS</h3>';
+  if (!M) return h + '<div class="dim">' + esc(V.trajErr || 'reading the track…') + '</div></div>';
+  if (M.error) return h + '<div class="dim">' + esc(M.error) + '</div></div>';
+  const A = M.axes || {}, per = (key, u, d = 1, g) => (A[key] || [null, null, null]).map((x, k) => [AXN[k], f(x, u, d), g ? g(k) : '']);
+  h += '<div class="kv">' +
+    vlOpen(pid + '_rmse', FU ? 'RMSE' : RAW ? 'RMSE (first fix)' : 'RMSE (60 s)', f(M.rmse_60s_h, 'm'), '3-D ' + f(M.rmse_60s_3d), false,
+           FU ? 'absolute: the fused track in its map frame, placed by the fusion origin, never aligned to GPS -- the error a consumer of the fused output sees'
+              : RAW ? 'the raw flux track placed by the fusion\'s FIRST map<-VIO transform and left alone: what the aircraft would have flown on had fixes stopped after the first one, so its drift afterwards counts'
+              : 'aligned once at the start, as in the 3-D view -- yaw from the Pixhawk heading when VIO started, offset over the first 60 s: everything VIO does afterwards counts', per('rmse_60s', 'm')) +
+    vlOpen(pid + '_ate', 'ATE', f(M.ate_h, 'm'), '3-D ' + f(M.ate_3d), false,
+           'absolute trajectory error: RMSE with yaw and offset fitted over the whole flight -- the shape of the track, not where it drifted to',
+           per('ate', 'm')) +
+    vlOpen(pid + '_nees', 'NEES', f(M.nees_mean, '', 1), 'med ' + f(M.nees_med, '', 0), M.nees_mean > 7.815,
+           'eᵀP⁻¹e of the ' + (FU ? 'absolute' : 'start-aligned') + ' position error against ' + TN + '\'s own published covariance: 3 on average for a consistent filter, above it overconfident. ' +
+           'Per direction: e²/σ², expect 1; horizontal: 2 dof, expect 2',
+           [['horizontal', f(M.nees_h_mean, '', 1), 'expect 2', M.nees_h_mean > 5.991]].concat(
+             (A.nees || [null, null, null]).map((x, k) => [AXN[k], f(x, '', 1), 'med ' + f((A.nees_med || [])[k], '', 1) + ' · expect 1', x > 3.841]))) +
+    vlOpen(pid + '_end', 'end error', f(M.end_h, 'm'), M.end_pct !== null ? f(M.end_pct, '% of path') : '', false,
+           'at the end of the overlap; per direction signed, ' + TN + ' minus GPS', per('end', 'm')) +
+    vlOpen(pid + '_max', 'max error', f(M.max_h, 'm'), '', false, 'per direction: the largest |error| along that axis', per('max', 'm')) +
+    vlRow('GPS path', f(M.path_m, 'm', 0), f(M.span_s, 's', 0), false) + '</div></div>';
+  return h;
+}
+
+function vioCursorCard(){
+  const R = S.R, E = V.trajS;
+  let h = '<div class="card"><h3>CURSOR<span class="sub">' + (R ? IST(R.T0 + V.t) + ' IST' : '') + '</span></h3><div class="big">' +
+    fmtRel(V.t, 1) + '<small>s into the flight</small></div>';
+  if (E && E.t.length && V.t >= E.t[0] && V.t <= E.t[E.t.length - 1]){
+    const k = lb(E.t, V.t), a = Math.max(0, k - 1);
+    const at = key => { if (!E[key]) return NaN; const y0 = E[key][a], y1 = E[key][Math.min(k, E.t.length - 1)];
+                        return y0 === null || y1 === null ? NaN : interp(E.t, E[key], V.t); };
+    const ks = ['h', 'e', 'n', 'v'], mx = [0, 0, 0, 0], s2 = [0, 0, 0, 0], n = [0, 0, 0, 0];
+    for (let i = 0; i <= a; i++) ks.forEach((c, j) => { const y = E[c] && E[c][i]; if (y === null || y === undefined) return;
+      if (Math.abs(y) > mx[j]) mx[j] = Math.abs(y); if (E.t[i] >= V.t - 60){ s2[j] += y * y; n[j]++; } });
+    const rm = j => n[j] ? f1(Math.sqrt(s2[j] / n[j]), 1) + ' m' : '--';
+    const sub = fn => [1, 2, 3].map(j => [AXN[j - 1], fn(j)]);
+    const nees = at('nees');
+    h += '<div class="kv" style="margin-top:6px">' +
+      vlOpen('c_err', 'error vs GPS', f1(at('h'), 1) + ' m', 'vert ' + f1(at('v'), 1) + ' m', false, 'horizontal; per direction signed, ' + (V.trajFused ? 'fuse' : 'VIO') + ' minus GPS',
+             sub(j => f1(at(ks[j]), 1) + ' m')) +
+      vlOpen('c_rmse', 'RMSE last 60 s', rm(0), '', false, '', sub(rm)) +
+      vlOpen('c_max', 'max so far', f1(mx[0], 1) + ' m', '', false, 'per direction: the largest |error| along that axis so far', sub(j => f1(mx[j], 1) + ' m')) +
+      vlRow('GPS path so far', f1(at('path'), 0) + ' m', '') +
+      vlOpen('c_nees', 'NEES now', f1(nees, 1), 'expect 3', nees > 7.815, 'per direction e²/σ² (expect 1), horizontal 2 dof (expect 2)',
+             [['horizontal', f1(at('nees_h'), 1), 'expect 2', at('nees_h') > 5.991]].concat(
+               ['nees_e', 'nees_n', 'nees_u'].map((c, j) => [AXN[j], f1(at(c), 1), 'expect 1', at(c) > 3.841]))) + '</div>';
+  } else if (E) h += '<div class="dim" style="margin-top:6px">no ' + (V.trajFused ? 'fuse' : 'VIO') + ' / GPS overlap at the cursor</div>';
+  return h + '</div>';
+}
+
+function vioAttCard(){
+  const A = V.data && V.data.attitude;
+  if (!A) return '';
+  let h = '<div class="card"><h3>ATTITUDE · FULL FLIGHT<span class="sub">airborne ' + f1(A.air_s, 0) + ' s</span></h3>';
+  if (A.error) return h + '<div class="dim">' + esc(A.error) + '</div></div>';
+  const angs = ['roll', 'pitch', 'heading'].filter(g => A.pairs.some(q => q.angle === g));
+  const cell = (a, b, g) => { const q = A.pairs.find(q => q.a === a && q.b === b && q.angle === g);
+    return q ? (q.mean >= 0 ? '+' : '') + q.mean.toFixed(2) + ' ± ' + q.std.toFixed(2) : ''; };
+  h += '<table class="att"><tr><th>difference, mean ± std °</th>' + angs.map(g => '<th>' + g + '</th>').join('') + '</tr>';
+  for (const [a, b] of [...new Set(A.pairs.map(q => q.a + '|' + q.b))].map(k => k.split('|')))
+    h += '<tr><td>' + esc(a) + ' − ' + esc(b) + '</td>' + angs.map(g => '<td>' + cell(a, b, g) + '</td>').join('') + '</tr>';
+  const hangs = ['roll', 'pitch'].filter(g => A.hat && A.hat[g]);
+  if (hangs.length){
+    h += '<tr><th title="three-cornered hat: if the errors are independent, var(a−b) = var a + var b, so each source\'s own error follows from the three pairs">own error σ °</th>' +
+         hangs.map(g => '<th>' + g + '</th>').join('') + '</tr>';
+    for (const n of A.sources)
+      h += '<tr><td>' + esc(n) + '</td>' + hangs.map(g => { const e = A.hat[g][n]; return '<td>' + (e === null || e === undefined ? '≈ 0' : e.toFixed(2)) + '</td>'; }).join('') + '</tr>';
+  }
+  return h + '</table><div class="dim" style="font-size:10px;margin-top:5px">Vehicle frame: roll right wing down +, pitch nose up +. ' +
+    'The σ come from the three-cornered hat; VIO and atlas share the EC IMU, so their common error lands on the Pixhawk: theirs are lower bounds. ' +
+    '≈ 0: the estimate came out at or below zero.</div></div>';
+}
+
+function vioLive(){
+  const el = document.getElementById('vioLive');
+  if (!el) return;
+  el.innerHTML = vioFlightCard();   // public demo: the full-flight card is the whole panel
+  return;
+  const have = V.data.signals;
+  const cards = VIO_LIVE.filter(([, , when]) => !when || when(have))
+    .map(([t, rows]) => [t, rows.filter(r => r.ids.every(id => have[id]) && (!r.ref || have[r.ref]))]).filter(([, rows]) => rows.length);
+  if (V.liveFor !== V.series){          // once per run: every series the cards read, in one request
+    V.liveFor = V.series;
+    const need = [...new Set([].concat(...cards.map(([, rows]) => [].concat(...rows.map(r => r.ids)))))];
+    vioFetch(need).then(vioDrawAll).catch(e => console.error('live series', e));
+  }
+  let h = vioFlightCard() + vioCursorCard() + vioAttCard();
+  for (const [t, rows] of cards)
+    h += '<div class="card"><h3>' + (t === 'ODOMETRY' ? 'ODOMETRY · ' + esc(V.data.vio || 'VIO') : t) + '</h3><div class="kv">' +
+         rows.map(vioLiveRow).join('') + '</div></div>';
+  if (S.R && S.R.A.t.length){
+    const i = lb(S.R.A.t, S.R.T0 + V.t + 1e-6) - 1;
+    if (i >= 0) h += attemptCard(S.R, i, 'ATLAS · LAST ATTEMPT', true);
+  }
+  el.innerHTML = h;
+}
+
+V.syncing = false;
+function vioFromAtlas(){
+  if (!S.R || V.syncing) return;
+  V.syncing = true;
+  vioSeek(Math.max(0, S.t - S.R.T0));
+  V.syncing = false;
+}
+function vioToAtlas(t){
+  if (!S.R || V.syncing) return;
+  V.syncing = true;
+  try { setT(S.R.T0 + t, 'vio'); } catch (e) {}
+  V.syncing = false;
+}
+
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+  const t = b.dataset.tab;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+  document.body.classList.remove('tab-video', 'tab-signals');
+  if (t !== 'atlas') document.body.classList.add('tab-' + t);
+  V.over = (t === 'video');                       // which video owns the clock
+  if (t !== 'atlas'){
+    if (V.run !== (window.RUN || null)) vioLoad(window.RUN).then(vioFromAtlas);
+    else { vioStats(); vioFromAtlas(); }
+  } else {
+    vioToAtlas(V.t);                 // carry the VIO cursor back to the map
+    if (S.refit && S.fitBox){ S.refit = false; requestAnimationFrame(() => MV.fit(...S.fitBox)); }
+  }
+  urlSoon();
+});
+document.getElementById('vioVidToggle').onclick = function(){
+  const p = document.getElementById('vioSmallPane'), on = p.style.display !== 'none';
+  p.style.display = on ? 'none' : 'block';
+  this.classList.toggle('on', !on);
+  vioDrawAll();
+};
+document.getElementById('vioLive').addEventListener('click', e => {   // open / close an error row's E N U
+  const r = e.target.closest('[data-x]'); if (!r) return;
+  const k = r.dataset.x; if (V.liveOpen.has(k)) V.liveOpen.delete(k); else V.liveOpen.add(k);
+  vioLive();
+});
+document.getElementById('vioAddFig').onclick = () => { V.figs.push({ids:[]}); V.active = V.figs.length - 1; vioDrawAll(); vioSigList(); };
+document.getElementById('vioClear').onclick = () => { V.sel.clear(); V.figs = [{ids:[]}]; V.active = 0; vioSigList(); vioDrawAll(); };
+(function(){
+  const v = document.getElementById('vioVidBig');
+  if (!v) return;
+  v.addEventListener('timeupdate', () => { if (V.over) vioVidTime(v); });
+  v.addEventListener('seeked', () => {
+    if (V.vidSeekT0){                                     // what a seek actually costs, smoothed
+      const d = (performance.now() - V.vidSeekT0) / 1000;
+      V.vidSeekCost = V.vidSeekCost ? V.vidSeekCost * 0.7 + d * 0.3 : d;
+      V.vidSeekT0 = 0;
+    }
+    try { vioVidFollow(V.t); } catch (e){}
+  });
+})();
+window.addEventListener('resize', () => { if (document.body.classList.contains('tab-vio')) vioDrawAll(); });
+</script>
+</body>
+</html>
