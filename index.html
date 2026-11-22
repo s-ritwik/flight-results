@@ -227,6 +227,35 @@ body.tab-signals main.signals{display:grid}
 #vioStylePop .foot{display:flex;gap:5px;margin-top:10px}
 #vioStylePop .foot button{flex:1 1 auto;padding:4px;font-size:10px;font-family:var(--mono);
   border:1px solid var(--edge2);background:var(--panel);color:var(--dim);border-radius:4px;cursor:pointer}
+@media (max-width: 760px){
+  body{height:100vh;height:100dvh}
+  header{flex-wrap:wrap;gap:6px 10px;padding:8px 10px}
+  .logo{font-size:13px;letter-spacing:1.5px}
+  .pick{font-size:0;gap:0}
+  .pick select{font-size:13px;padding:6px 8px}
+  .chips{flex-wrap:wrap;overflow:visible;width:100%}
+  .chip.kind-flight{display:none}
+  .insp{margin:6px 6px 0}
+  .insphd{padding:6px 8px;gap:4px 8px}
+  .insphd>b{display:none}
+  #igrid{grid-template-columns:minmax(0,1fr);grid-template-rows:none;grid-auto-rows:auto;padding:4px;gap:4px}
+  #igrid>*{grid-column:1!important;grid-row:auto!important}
+  #igrid>.ipane[data-p="A"]{aspect-ratio:16/10;order:1}
+  #igrid>.ipane[data-p="D"]{aspect-ratio:1/1;order:2}
+  #igrid>#mapPane{aspect-ratio:1/1;order:3;min-height:0}
+  #igrid .dblend{padding:4px 8px}
+  #igrid .dblend input{width:70px}
+  .dbtns .ibtn{font-size:9.5px;padding:2px 5px}
+  .ilab{font-size:10px;max-width:calc(100% - 150px)}
+  .mapbtns button{padding:4px 7px}
+  .resrow{grid-template-columns:minmax(0,1fr);height:auto;margin:6px}
+  .resrow>#vioSmallPane{height:auto;aspect-ratio:4/5;min-height:0}
+  .v3dhint{display:none}
+  footer{flex-wrap:wrap;gap:6px 8px;padding:6px 10px calc(6px + env(safe-area-inset-bottom))}
+  .speed{display:none!important}
+  .scrub{order:5;flex:1 1 100%;min-width:0}
+  .tcode{min-width:0;font-size:11px;margin-left:auto}
+}
 </style>
 </head>
 <body>
@@ -389,10 +418,13 @@ body.tab-signals main.signals{display:grid}
 const $ = s => document.querySelector(s);
 function wheelZoom(e, el){
   if (e.ctrlKey || e.metaKey) return true;
-  let h = el.querySelector(':scope > .wzhint');
-  if (!h){ h = document.createElement('div'); h.className = 'wzhint'; h.textContent = 'ctrl + scroll to zoom'; el.appendChild(h); }
-  h.classList.add('on'); clearTimeout(h.tm); h.tm = setTimeout(() => h.classList.remove('on'), 900);
+  showHint(el, 'ctrl + scroll to zoom');
   return false;
+}
+function showHint(el, txt){
+  let h = el.querySelector(':scope > .wzhint');
+  if (!h){ h = document.createElement('div'); h.className = 'wzhint'; el.appendChild(h); }
+  h.textContent = txt; h.classList.add('on'); clearTimeout(h.tm); h.tm = setTimeout(() => h.classList.remove('on'), 900);
 }
 const DPR = () => window.devicePixelRatio || 1;
 
@@ -578,6 +610,15 @@ class MapView {
     cv.addEventListener('mouseleave', () => { hideTip(); this.onLeave && this.onLeave(); });
     cv.addEventListener('dblclick', e => { const r = cv.getBoundingClientRect(); this.zoomAt(e.clientX - r.left, e.clientY - r.top, 1); });
     new ResizeObserver(() => this.draw()).observe(cv);
+    let pinch = null;
+    const two = e => { const [a, b] = e.touches, r = cv.getBoundingClientRect(); return {d:Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), x:(a.clientX + b.clientX) / 2 - r.left, y:(a.clientY + b.clientY) / 2 - r.top}; };
+    cv.addEventListener('touchstart', e => { if (e.touches.length === 2){ e.preventDefault(); pinch = two(e); } }, {passive:false});
+    cv.addEventListener('touchmove', e => {
+      if (e.touches.length === 1 && !pinch){ showHint(cv.parentElement, 'two fingers to move · pinch to zoom'); return; }
+      if (!pinch || e.touches.length !== 2) return;
+      e.preventDefault(); const p = two(e), s = Math.pow(2, 19 - this.z);
+      this.cx -= (p.x - pinch.x) * s; this.cy -= (p.y - pinch.y) * s; this.zoomAt(p.x, p.y, Math.log2(p.d / pinch.d)); pinch = p; }, {passive:false});
+    cv.addEventListener('touchend', e => { if (e.touches.length < 2) pinch = null; });
   }
   size(){ return [this.cv.clientWidth, this.cv.clientHeight]; }
   toS(gx, gy){ const s = Math.pow(2, this.z - 19), [W, H] = this.size(); return [(gx - this.cx) * s + W / 2, (gy - this.cy) * s + H / 2]; }
@@ -2131,7 +2172,17 @@ async function vioLoadTraj(){
     if (T.hidden) V.trajHide.add(kind); else V.trajHide.delete(kind);
     vioDraw3d();
   });
-  tj.addEventListener('contextmenu', e => e.preventDefault());   // right-drag pans instead
+  tj.addEventListener('contextmenu', e => e.preventDefault());
+  let tp = null;
+  const two3 = e => { const [a, b] = e.touches; return {d:Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), x:(a.clientX + b.clientX) / 2, y:(a.clientY + b.clientY) / 2}; };
+  tj.addEventListener('touchstart', e => { if (e.touches.length === 2){ e.preventDefault(); tp = two3(e); } }, {passive:false});
+  tj.addEventListener('touchmove', e => {
+    if (e.touches.length === 1 && !tp){ showHint(tj.parentElement, 'two fingers to turn · pinch to zoom'); return; }
+    if (!tp || e.touches.length !== 2) return;
+    e.preventDefault(); const p = two3(e);
+    V.cam.az += (p.x - tp.x) * 0.008; V.cam.el = Math.max(-1.5, Math.min(1.5, V.cam.el + (p.y - tp.y) * 0.008));
+    V.cam.zoom = Math.max(0.05, Math.min(200, V.cam.zoom * p.d / tp.d)); tp = p; vioDraw3d(); }, {passive:false});
+  tj.addEventListener('touchend', e => { if (e.touches.length < 2) tp = null; });   // right-drag pans instead
   window.addEventListener('mousemove', e => { if (!drag) return;
     if (drag.pan){
       V.cam.px = drag.px + (e.clientX - drag.x);
